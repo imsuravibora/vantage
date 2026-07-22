@@ -246,18 +246,24 @@ export function generateDataset(): Dataset {
     }
   }
 
-  // Allocations (last 8 weeks per engineer)
+  // Allocations (last 8 weeks per engineer). Each engineer gets a persistent
+  // capacity profile so the average over 8 weeks actually shows a clear signal,
+  // instead of random weekly noise averaging back out to ~100%.
   const allocations: Allocation[] = [];
   for (const eng of engineers) {
+    const profile = rng.pickWeighted<"overloaded" | "underloaded" | "balanced">([
+      ["overloaded", 20],
+      ["underloaded", 15],
+      ["balanced", 65],
+    ]);
     for (let w = 0; w < 8; w++) {
       const weekStart = rng.daysAgo(w * 7);
-      const overloaded = rng.bool(0.2);
-      const underloaded = !overloaded && rng.bool(0.15);
-      const allocatedHours = overloaded
-        ? Math.round(eng.weeklyCapacityHours * rng.int(115, 140) / 100)
-        : underloaded
-        ? Math.round(eng.weeklyCapacityHours * rng.int(40, 70) / 100)
-        : Math.round(eng.weeklyCapacityHours * rng.int(85, 105) / 100);
+      const allocatedHours =
+        profile === "overloaded"
+          ? Math.round((eng.weeklyCapacityHours * rng.int(112, 145)) / 100)
+          : profile === "underloaded"
+          ? Math.round((eng.weeklyCapacityHours * rng.int(40, 72)) / 100)
+          : Math.round((eng.weeklyCapacityHours * rng.int(85, 105)) / 100);
       allocations.push({
         engineerId: eng.id,
         weekStart: weekStart.toISOString().slice(0, 10),
