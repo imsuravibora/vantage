@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:data": "tsx scripts/seed/generate.ts"
+    "generate:data": "tsx scripts/seed/generate.ts",
+    "load:data": "tsx scripts/seed/load-to-supabase.ts",
+    "generate:embeddings": "tsx scripts/seed/generate-embeddings.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
@@ -22,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
