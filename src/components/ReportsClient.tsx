@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Badge from "@/components/Badge";
+import MarkdownContent from "@/components/MarkdownContent";
 import type { ReportRow } from "@/lib/reports";
 
 export default function ReportsClient({
@@ -126,8 +127,8 @@ export default function ReportsClient({
                 className="mt-3 w-full rounded-md border border-slate-300 p-2 text-sm"
               />
             ) : (
-              <div className="mt-3 text-sm whitespace-pre-wrap text-slate-700">
-                {report.final_content ?? report.draft_content}
+              <div className="mt-3">
+                <MarkdownContent content={report.final_content ?? report.draft_content} />
               </div>
             )}
 

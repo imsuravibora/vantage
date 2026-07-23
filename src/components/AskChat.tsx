@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RagSource } from "@/lib/rag";
+import MarkdownContent from "@/components/MarkdownContent";
 
 const SAMPLE_QUESTIONS = [
   "Why is Phoenix at risk?",
@@ -87,7 +88,7 @@ export default function AskChat() {
 
       {answer && (
         <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
-          <div className="text-sm whitespace-pre-wrap">{answer}</div>
+          <MarkdownContent content={answer} />
           {sources.length > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-100">
               <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Sources</div>
