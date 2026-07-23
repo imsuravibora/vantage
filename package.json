@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && tsx scripts/prewarm-embeddings.ts",
     "start": "next start",
     "lint": "eslint",
     "generate:data": "tsx scripts/seed/generate.ts",
@@ -17,7 +17,8 @@
     "groq-sdk": "^1.3.0",
     "next": "16.2.11",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tsx": "^4.23.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -28,7 +29,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
-    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }
