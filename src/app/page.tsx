@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
 import Badge from "@/components/Badge";
+import BudgetChart from "@/components/charts/BudgetChart";
+import RiskDistributionChart from "@/components/charts/RiskDistributionChart";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +53,24 @@ export default async function DashboardPage() {
         />
       </div>
 
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border border-slate-200 rounded-lg p-4 bg-white">
+          <h3 className="font-semibold">Budget: planned vs. spent</h3>
+          <BudgetChart
+            data={dataset.projects.map((p) => ({ name: p.name, planned: p.budgetPlanned, spent: p.budgetSpent }))}
+          />
+        </div>
+        <div className="border border-slate-200 rounded-lg p-4 bg-white">
+          <h3 className="font-semibold">Risk distribution</h3>
+          <RiskDistributionChart
+            data={(["low", "medium", "high"] as const).map((level) => ({
+              name: level,
+              value: summary.projectRisks.filter((r) => r.level === level).length,
+            }))}
+          />
+        </div>
+      </div>
+
       <div className="mt-8">
         <h2 className="text-lg font-semibold">Projects by risk</h2>
         <div className="mt-3 overflow-x-auto border border-slate-200 rounded-lg">
@@ -69,7 +90,11 @@ export default async function DashboardPage() {
                 const variance = budgetVariancePct(project);
                 return (
                   <tr key={project.id}>
-                    <td className="px-4 py-3 font-medium">{project.name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/projects/${project.id}`} className="text-blue-700 hover:underline">
+                        {project.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
                       <Badge value={project.status} />
                     </td>

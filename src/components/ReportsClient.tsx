@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Badge from "@/components/Badge";
 import MarkdownContent from "@/components/MarkdownContent";
+import { downloadReportPdf } from "@/lib/pdf";
 import type { ReportRow } from "@/lib/reports";
 
 export default function ReportsClient({
@@ -152,9 +153,19 @@ export default function ReportsClient({
             )}
 
             {report.status !== "pending-review" && (
-              <div className="mt-2 text-xs text-slate-400">
-                {report.status === "approved" ? "Approved" : "Rejected"} by {report.reviewed_by} on{" "}
-                {report.reviewed_at ? new Date(report.reviewed_at).toLocaleString() : "—"}
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-xs text-slate-400">
+                  {report.status === "approved" ? "Approved" : "Rejected"} by {report.reviewed_by} on{" "}
+                  {report.reviewed_at ? new Date(report.reviewed_at).toLocaleString() : "—"}
+                </div>
+                {report.status === "approved" && (
+                  <button
+                    onClick={() => downloadReportPdf(report)}
+                    className="text-xs rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-100"
+                  >
+                    Download PDF
+                  </button>
+                )}
               </div>
             )}
           </div>

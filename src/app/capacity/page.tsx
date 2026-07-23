@@ -1,6 +1,7 @@
 import { getDataset } from "@/lib/data-access";
 import { computeEngineerCapacity } from "@/lib/analytics";
 import Badge from "@/components/Badge";
+import CapacityChart from "@/components/charts/CapacityChart";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,14 @@ export default async function CapacityPage() {
         Average allocation vs. weekly capacity over the last 8 weeks — a resourcing view, not a productivity ranking.
       </p>
 
-      <div className="mt-6 space-y-8">
+      <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
+        <h2 className="font-semibold">Utilization by engineer</h2>
+        <CapacityChart
+          data={rows.map((r) => ({ name: r.name, utilizationPct: r.utilizationPct, status: r.status }))}
+        />
+      </div>
+
+      <div className="mt-8 space-y-8">
         {[...byTeam.entries()].map(([teamName, teamRows]) => (
           <div key={teamName}>
             <h2 className="text-lg font-semibold">{teamName}</h2>

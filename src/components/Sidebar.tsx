@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/ask", label: "Ask AI" },
   { href: "/reports", label: "Reports" },
   { href: "/capacity", label: "Capacity" },
+  { href: "/timeline", label: "Timeline" },
 ];
 
 export default function Sidebar() {
