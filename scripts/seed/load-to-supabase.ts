@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getSupabase } from "../../src/lib/supabase";
