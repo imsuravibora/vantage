@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
-let client: ReturnType<typeof createClient> | null = null;
+let client: ReturnType<typeof createClient<Database>> | null = null;
 
 // Server-only client using the service role key. Never import this from client components.
 export function getSupabase() {
@@ -12,7 +13,7 @@ export function getSupabase() {
     throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
   }
 
-  client = createClient(url, key, {
+  client = createClient<Database>(url, key, {
     auth: { persistSession: false },
   });
   return client;

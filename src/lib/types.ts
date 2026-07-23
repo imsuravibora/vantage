@@ -3,7 +3,7 @@ export type TicketStatus = "todo" | "in-progress" | "done" | "blocked";
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 export type IncidentSeverity = "sev1" | "sev2" | "sev3";
 export type DocType = "retro" | "postmortem" | "status-update";
-export type ReportStatus = "draft" | "pending-review" | "approved" | "rejected";
+export type ReportStatus = "pending-review" | "approved" | "rejected";
 
 export interface Team {
   id: string;

@@ -3,14 +3,19 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { getSupabase } from "../../src/lib/supabase";
 import type { Dataset } from "../../src/lib/types";
+import type { Database } from "../../src/lib/database.types";
 
 const BATCH_SIZE = 500;
 
-async function insertBatched(table: string, rows: Record<string, unknown>[]) {
+type TableName = keyof Database["public"]["Tables"];
+
+async function insertBatched<T extends TableName>(table: T, rows: Database["public"]["Tables"][T]["Insert"][]) {
   const supabase = getSupabase();
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
-    const { error } = await supabase.from(table).insert(batch);
+    // TS can't verify Insert-per-table when T is generic inside this function body,
+    // even though every call site below is fully typed. Narrow, contained cast.
+    const { error } = await supabase.from(table).insert(batch as never[]);
     if (error) {
       throw new Error(`Insert into ${table} failed: ${error.message}`);
     }

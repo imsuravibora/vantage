@@ -127,7 +127,6 @@ export function generateDataset(): Dataset {
       budgetSpent,
     };
   });
-  const projectByName = new Map(projects.map((p) => [p.name, p]));
   const engineersByTeam = new Map(teams.map((t) => [t.id, engineers.filter((e) => e.teamId === t.id)]));
 
   // Tickets
