@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { draftExecutiveReport } from "@/lib/reports";
+import { requireRole, AuthError } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  try {
+    await requireRole("management");
+  } catch (err) {
+    if (err instanceof AuthError) return NextResponse.json({ error: err.message }, { status: err.status });
+    throw err;
+  }
+
   let body: unknown = {};
   try {
     const text = await request.text();

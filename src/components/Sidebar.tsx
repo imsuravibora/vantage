@@ -1,29 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type { Profile } from "@/lib/types";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/ask", label: "Ask AI" },
-  { href: "/reports", label: "Reports" },
   { href: "/capacity", label: "Capacity" },
   { href: "/timeline", label: "Timeline" },
 ];
 
-export default function Sidebar() {
+const ROLE_LABEL: Record<Profile["role"], string> = {
+  project_manager: "Project Manager",
+  management: "Management",
+};
+
+export default function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const navItems = [...BASE_NAV_ITEMS];
+  if (profile.role === "management") {
+    navItems.push({ href: "/reports", label: "Reports" });
+  } else {
+    navItems.push({ href: "/documents", label: "Documents" });
+  }
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="w-64 shrink-0 bg-slate-900 text-slate-200 flex flex-col min-h-screen">
       <div className="px-6 py-6 border-b border-slate-800">
-        <div className="text-xl font-bold text-white">
-          Vantage
-        </div>
+        <div className="text-xl font-bold text-white">Vantage</div>
         <div className="text-xs text-slate-400 mt-1">AI Management Reporting</div>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
@@ -40,8 +59,15 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-6 py-4 border-t border-slate-800 text-xs text-slate-500">
-        Synthetic demo data
+      <div className="px-6 py-4 border-t border-slate-800">
+        <div className="text-sm font-medium text-white truncate">{profile.fullName ?? profile.email}</div>
+        <div className="text-xs text-slate-400">{ROLE_LABEL[profile.role]}</div>
+        <button
+          onClick={handleSignOut}
+          className="mt-3 text-xs text-slate-400 hover:text-white underline"
+        >
+          Sign out
+        </button>
       </div>
     </aside>
   );

@@ -2,15 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDataset } from "@/lib/data-access";
 import { computeProjectRisk, budgetVariancePct } from "@/lib/analytics";
+import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
 import BudgetChart from "@/components/charts/BudgetChart";
 import MarkdownContent from "@/components/MarkdownContent";
+import TicketManager from "@/components/TicketManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const dataset = await getDataset();
+  const [dataset, profile] = await Promise.all([getDataset(), getCurrentProfile()]);
 
   const project = dataset.projects.find((p) => p.id === id);
   if (!project) notFound();
@@ -24,12 +26,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const risk = computeProjectRisk(project, milestones, findings, incidents);
   const variance = budgetVariancePct(project);
 
-  const ticketCounts = {
-    todo: tickets.filter((t) => t.status === "todo").length,
-    inProgress: tickets.filter((t) => t.status === "in-progress").length,
-    done: tickets.filter((t) => t.status === "done").length,
-    blocked: tickets.filter((t) => t.status === "blocked").length,
-  };
+  const teamEngineers = dataset.engineers.filter((e) => e.teamId === project.teamId);
+  const ticketsWithAssignee = tickets.map((t) => ({
+    ...t,
+    assigneeName: dataset.engineers.find((e) => e.id === t.assigneeId)?.name ?? t.assigneeId,
+  }));
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -71,27 +72,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <BudgetChart data={[{ name: project.name, planned: project.budgetPlanned, spent: project.budgetSpent }]} />
         </div>
 
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Tickets</h3>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <div className="text-2xl font-bold">{ticketCounts.done}</div>
-              <div className="text-slate-500">Done</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{ticketCounts.inProgress}</div>
-              <div className="text-slate-500">In progress</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-red-600">{ticketCounts.blocked}</div>
-              <div className="text-slate-500">Blocked</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{ticketCounts.todo}</div>
-              <div className="text-slate-500">Todo</div>
-            </div>
-          </div>
-        </div>
+        <TicketManager
+          projectId={project.id}
+          initialTickets={ticketsWithAssignee}
+          engineers={teamEngineers.map((e) => ({ id: e.id, name: e.name }))}
+          canEdit={profile?.role === "project_manager"}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">

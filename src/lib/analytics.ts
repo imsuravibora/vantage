@@ -79,6 +79,7 @@ export function computeProjectRisk(
 }
 
 export function budgetVariancePct(project: Project): number {
+  if (project.budgetPlanned === 0) return 0;
   return ((project.budgetSpent - project.budgetPlanned) / project.budgetPlanned) * 100;
 }
 

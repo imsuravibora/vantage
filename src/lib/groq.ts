@@ -23,3 +23,18 @@ export async function completeChat(messages: { role: "system" | "user" | "assist
   });
   return completion.choices[0]?.message?.content ?? "";
 }
+
+// Same as completeChat, but constrains the model to emit valid JSON syntax.
+// Still validate the resulting shape -- json mode guarantees parseable JSON,
+// not that it matches whatever schema you asked for in the prompt.
+export async function completeJson(messages: { role: "system" | "user" | "assistant"; content: string }[]) {
+  const groq = getGroq();
+  const completion = await groq.chat.completions.create({
+    model: MODEL,
+    messages,
+    temperature: 0.2,
+    response_format: { type: "json_object" },
+  });
+  const text = completion.choices[0]?.message?.content ?? "{}";
+  return JSON.parse(text) as unknown;
+}

@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getSupabase } from "../../src/lib/supabase";
+import { getSupabase } from "../../src/lib/supabase-admin";
 import { embedTexts } from "../../src/lib/embeddings";
 import { chunkText } from "../../src/lib/chunking";
 import type { Dataset } from "../../src/lib/types";

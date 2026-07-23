@@ -138,7 +138,7 @@ export interface Database {
         Row: {
           id: string;
           project_id: string;
-          type: "retro" | "postmortem" | "status-update";
+          type: "retro" | "postmortem" | "status-update" | "uploaded-doc";
           title: string;
           content: string;
           created_at: string;
@@ -146,7 +146,7 @@ export interface Database {
         Insert: {
           id: string;
           project_id: string;
-          type: "retro" | "postmortem" | "status-update";
+          type: "retro" | "postmortem" | "status-update" | "uploaded-doc";
           title: string;
           content: string;
           created_at: string;
@@ -201,6 +201,41 @@ export interface Database {
           reviewed_by: string | null;
           reviewed_at: string | null;
         }>;
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          role: "project_manager" | "management";
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          full_name?: string | null;
+          role: "project_manager" | "management";
+        };
+        Update: Partial<{ email: string; full_name: string | null; role: "project_manager" | "management" }>;
+        Relationships: [];
+      };
+      report_feedback: {
+        Row: {
+          id: number;
+          report_id: number;
+          author_id: string;
+          author_name: string;
+          comment: string;
+          created_at: string;
+        };
+        Insert: {
+          report_id: number;
+          author_id: string;
+          author_name: string;
+          comment: string;
+        };
+        Update: Partial<{ comment: string }>;
         Relationships: [];
       };
     };

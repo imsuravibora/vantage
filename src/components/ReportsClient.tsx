@@ -1,24 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import confetti from "canvas-confetti";
 import Badge from "@/components/Badge";
 import MarkdownContent from "@/components/MarkdownContent";
 import { downloadReportPdf } from "@/lib/pdf";
 import type { ReportRow } from "@/lib/reports";
+import type { FeedbackRow } from "@/lib/feedback";
+import type { Profile } from "@/lib/types";
+
+function celebrate() {
+  confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+}
 
 export default function ReportsClient({
   initialReports,
+  initialFeedback,
   projects,
+  currentUser,
 }: {
   initialReports: ReportRow[];
+  initialFeedback: FeedbackRow[];
   projects: { id: string; name: string }[];
+  currentUser: Profile;
 }) {
   const [reports, setReports] = useState<ReportRow[]>(initialReports);
+  const [feedback, setFeedback] = useState<FeedbackRow[]>(initialFeedback);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [reviewerName, setReviewerName] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<number, string>>({});
+  const [feedbackDraft, setFeedbackDraft] = useState<Record<number, string>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
 
   async function generateReport() {
@@ -41,29 +53,41 @@ export default function ReportsClient({
   }
 
   async function review(id: number, action: "approve" | "reject") {
-    if (!reviewerName.trim()) {
-      setError("Enter your name before approving or rejecting a report.");
-      return;
-    }
     setBusyId(id);
     setError(null);
     try {
       const res = await fetch(`/api/reports/${id}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          reviewerName: reviewerName.trim(),
-          editedContent: editing[id],
-        }),
+        body: JSON.stringify({ action, editedContent: editing[id] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to review report");
       setReports((prev) => prev.map((r) => (r.id === id ? data.report : r)));
+      if (action === "approve") celebrate();
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function submitFeedback(reportId: number) {
+    const comment = (feedbackDraft[reportId] ?? "").trim();
+    if (!comment) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/reports/${reportId}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to add feedback");
+      setFeedback((prev) => [...prev, data.feedback]);
+      setFeedbackDraft((prev) => ({ ...prev, [reportId]: "" }));
+    } catch (err) {
+      setError((err as Error).message);
     }
   }
 
@@ -90,15 +114,6 @@ export default function ReportsClient({
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Your name (for review)</label>
-          <input
-            value={reviewerName}
-            onChange={(e) => setReviewerName(e.target.value)}
-            placeholder="e.g. Jordan"
-            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-          />
-        </div>
         <button
           onClick={generateReport}
           disabled={generating}
@@ -111,65 +126,100 @@ export default function ReportsClient({
       {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
 
       <div className="mt-6 space-y-4">
-        {reports.length === 0 && <div className="text-sm text-slate-400">No reports yet — generate one above.</div>}
-        {reports.map((report) => (
-          <div key={report.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{report.title}</h3>
-              <Badge value={report.status} />
-            </div>
-            <div className="text-xs text-slate-400 mt-1">{new Date(report.created_at).toLocaleString()}</div>
-
-            {report.status === "pending-review" ? (
-              <textarea
-                value={editing[report.id] ?? report.draft_content}
-                onChange={(e) => setEditing((prev) => ({ ...prev, [report.id]: e.target.value }))}
-                rows={6}
-                className="mt-3 w-full rounded-md border border-slate-300 p-2 text-sm"
-              />
-            ) : (
-              <div className="mt-3">
-                <MarkdownContent content={report.final_content ?? report.draft_content} />
+        {reports.length === 0 && (
+          <div className="text-sm text-slate-400">No reports yet — the AI&apos;s pen is still capped. Generate one above.</div>
+        )}
+        {reports.map((report) => {
+          const reportFeedback = feedback.filter((f) => f.report_id === report.id);
+          return (
+            <div key={report.id} className="border border-slate-200 rounded-lg p-4 bg-white">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">{report.title}</h3>
+                <Badge value={report.status} />
               </div>
-            )}
+              <div className="text-xs text-slate-400 mt-1">{new Date(report.created_at).toLocaleString()}</div>
 
-            {report.status === "pending-review" && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => review(report.id, "approve")}
-                  disabled={busyId === report.id}
-                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => review(report.id, "reject")}
-                  disabled={busyId === report.id}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                >
-                  Reject
-                </button>
-              </div>
-            )}
-
-            {report.status !== "pending-review" && (
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-xs text-slate-400">
-                  {report.status === "approved" ? "Approved" : "Rejected"} by {report.reviewed_by} on{" "}
-                  {report.reviewed_at ? new Date(report.reviewed_at).toLocaleString() : "—"}
+              {report.status === "pending-review" ? (
+                <textarea
+                  value={editing[report.id] ?? report.draft_content}
+                  onChange={(e) => setEditing((prev) => ({ ...prev, [report.id]: e.target.value }))}
+                  rows={6}
+                  className="mt-3 w-full rounded-md border border-slate-300 p-2 text-sm"
+                />
+              ) : (
+                <div className="mt-3">
+                  <MarkdownContent content={report.final_content ?? report.draft_content} />
                 </div>
-                {report.status === "approved" && (
+              )}
+
+              {report.status === "pending-review" && (
+                <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => downloadReportPdf(report)}
-                    className="text-xs rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-100"
+                    onClick={() => review(report.id, "approve")}
+                    disabled={busyId === report.id}
+                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                   >
-                    Download PDF
+                    Approve
                   </button>
-                )}
+                  <button
+                    onClick={() => review(report.id, "reject")}
+                    disabled={busyId === report.id}
+                    className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+
+              {report.status !== "pending-review" && (
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-xs text-slate-400">
+                    {report.status === "approved" ? "Approved" : "Rejected"} by {report.reviewed_by} on{" "}
+                    {report.reviewed_at ? new Date(report.reviewed_at).toLocaleString() : "—"}
+                  </div>
+                  {report.status === "approved" && (
+                    <button
+                      onClick={() => downloadReportPdf(report)}
+                      className="text-xs rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-100"
+                    >
+                      Download PDF
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Leadership feedback</div>
+                <ul className="mt-2 space-y-2">
+                  {reportFeedback.map((f) => (
+                    <li key={f.id} className="text-sm">
+                      <span className="font-medium">{f.author_name}</span>{" "}
+                      <span className="text-xs text-slate-400">{new Date(f.created_at).toLocaleString()}</span>
+                      <div className="text-slate-600">{f.comment}</div>
+                    </li>
+                  ))}
+                  {reportFeedback.length === 0 && (
+                    <li className="text-sm text-slate-400">No feedback yet — be the first to weigh in.</li>
+                  )}
+                </ul>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={feedbackDraft[report.id] ?? ""}
+                    onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [report.id]: e.target.value }))}
+                    placeholder={`Comment as ${currentUser.fullName ?? currentUser.email}...`}
+                    className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    onClick={() => submitFeedback(report.id)}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  >
+                    Post
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

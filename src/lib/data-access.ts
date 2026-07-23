@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { getSupabase } from "./supabase-admin";
 import type {
   Dataset,
   Team,
