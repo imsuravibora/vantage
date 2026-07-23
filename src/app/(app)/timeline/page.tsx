@@ -21,7 +21,7 @@ export default async function TimelinePage() {
     return (
       <div className="p-8 max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold">Timeline</h1>
-        <p className="text-slate-400 mt-4">No milestones to show.</p>
+        <p className="text-slate-400 mt-4">Nothing on the calendar yet.</p>
       </div>
     );
   }

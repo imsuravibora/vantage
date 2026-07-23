@@ -115,7 +115,7 @@ export default function TicketManager({
             )}
           </li>
         ))}
-        {tickets.length === 0 && <li className="text-slate-400">No tickets yet</li>}
+        {tickets.length === 0 && <li className="text-slate-400">A blank canvas — no tickets yet</li>}
       </ul>
 
       {canEdit && (

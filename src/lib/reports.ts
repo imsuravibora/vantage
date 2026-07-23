@@ -2,6 +2,7 @@ import { getSupabase } from "./supabase-admin";
 import { getDataset } from "./data-access";
 import { computeOrgSummary, computeProjectRisk, budgetVariancePct } from "./analytics";
 import { completeChat } from "./groq";
+import { getRelevantChunksForProject } from "./rag";
 import type { ReportStatus } from "./types";
 
 export interface ReportRow {
@@ -31,9 +32,15 @@ export async function draftExecutiveReport(projectId?: string): Promise<ReportRo
     const milestones = dataset.milestones.filter((m) => m.projectId === projectId);
     const findings = dataset.securityFindings.filter((f) => f.projectId === projectId);
     const incidents = dataset.incidents.filter((i) => i.projectId === projectId);
-    const docs = dataset.narrativeDocs.filter((d) => d.projectId === projectId);
     const risk = computeProjectRisk(project, milestones, findings, incidents);
     const variance = budgetVariancePct(project);
+
+    // Vector-search the project's notes instead of dumping every one in —
+    // stays scalable as more documents get uploaded over time.
+    const relevantChunks = await getRelevantChunksForProject(
+      projectId,
+      `${project.name} status update risks budget incidents milestones`
+    );
 
     facts =
       `Project: ${project.name}\n` +
@@ -44,7 +51,7 @@ export async function draftExecutiveReport(projectId?: string): Promise<ReportRo
       `Milestones: ${milestones.map((m) => `${m.name} (${m.status}, due ${m.dueDate})`).join("; ") || "none"}\n` +
       `Open critical/high security findings: ${findings.filter((f) => !f.resolved && (f.severity === "critical" || f.severity === "high")).length}\n` +
       `Incidents this quarter: ${incidents.map((i) => `${i.severity} — ${i.title}`).join("; ") || "none"}\n\n` +
-      `Recent notes:\n${docs.map((d) => `- ${d.title}: ${d.content}`).join("\n")}`;
+      `Relevant notes:\n${relevantChunks.map((c) => `- ${c.title}: ${c.content}`).join("\n") || "none"}`;
 
     title = `${project.name} — Executive Summary`;
   } else {

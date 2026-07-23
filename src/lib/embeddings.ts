@@ -24,3 +24,11 @@ export async function embedText(text: string): Promise<number[]> {
   const [embedding] = await embedTexts([text]);
   return embedding;
 }
+
+// Both vectors are already normalized (unit length) coming out of embedTexts,
+// so the dot product alone equals cosine similarity.
+export function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  return dot;
+}

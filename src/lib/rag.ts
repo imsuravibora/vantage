@@ -1,5 +1,5 @@
 import { getSupabase } from "./supabase-admin";
-import { embedText } from "./embeddings";
+import { embedText, cosineSimilarity } from "./embeddings";
 import { completeChat } from "./groq";
 
 export interface RagSource {
@@ -69,4 +69,34 @@ export async function answerQuestion(question: string, matchCount = 6): Promise<
   ]);
 
   return { answer, sources };
+}
+
+// For report drafting: rather than dumping every note tagged to a project
+// (which stops scaling once people start uploading real documents), rank
+// this project's chunks by relevance to a query and return only the top few.
+export async function getRelevantChunksForProject(
+  projectId: string,
+  query: string,
+  topN = 8
+): Promise<{ title: string; content: string }[]> {
+  const supabase = getSupabase();
+  const queryEmbedding = await embedText(query);
+
+  const { data: chunks, error } = await supabase
+    .from("doc_chunks")
+    .select("doc_id, content, embedding")
+    .eq("project_id", projectId);
+  if (error) throw new Error(`Failed to fetch document chunks: ${error.message}`);
+  if (!chunks || chunks.length === 0) return [];
+
+  const ranked = chunks
+    .map((c) => ({ ...c, similarity: cosineSimilarity(queryEmbedding, c.embedding) }))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, topN);
+
+  const docIds = [...new Set(ranked.map((r) => r.doc_id))];
+  const { data: docs } = await supabase.from("narrative_docs").select("id, title").in("id", docIds);
+  const titleById = new Map((docs ?? []).map((d) => [d.id as string, d.title as string]));
+
+  return ranked.map((r) => ({ title: titleById.get(r.doc_id) ?? r.doc_id, content: r.content }));
 }

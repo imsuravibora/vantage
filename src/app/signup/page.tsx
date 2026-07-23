@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import VantageMark from "@/components/VantageMark";
 import type { UserRole } from "@/lib/types";
 
 export default function SignupPage() {
@@ -59,7 +60,10 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm border border-slate-200 rounded-lg bg-white p-6">
-        <h1 className="text-xl font-bold">Vantage</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold">
+          <VantageMark className="w-6 h-6 text-amber-500" />
+          Vantage
+        </h1>
         <p className="text-sm text-slate-500 mt-1">Create an account</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">

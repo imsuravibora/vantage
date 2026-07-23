@@ -93,7 +93,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </span>
               </li>
             ))}
-            {milestones.length === 0 && <li className="text-slate-400">No milestones</li>}
+            {milestones.length === 0 && <li className="text-slate-400">Nothing on the calendar yet</li>}
           </ul>
         </div>
 
@@ -108,7 +108,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </span>
               </li>
             ))}
-            {findings.length === 0 && <li className="text-slate-400">No findings</li>}
+            {findings.length === 0 && <li className="text-slate-400">Clean bill of health — no findings here</li>}
           </ul>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             </li>
           ))}
-          {incidents.length === 0 && <li className="text-slate-400">No incidents this quarter</li>}
+          {incidents.length === 0 && <li className="text-slate-400">Quiet quarter — nothing on fire</li>}
         </ul>
       </div>
 
@@ -142,7 +142,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
           ))}
-          {docs.length === 0 && <div className="text-slate-400 text-sm">No notes for this project</div>}
+          {docs.length === 0 && (
+            <div className="text-slate-400 text-sm">No notes yet — nobody&apos;s written anything down</div>
+          )}
         </div>
       </div>
     </div>

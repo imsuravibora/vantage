@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import VantageMark from "@/components/VantageMark";
 import type { Profile } from "@/lib/types";
 
 const BASE_NAV_ITEMS = [
@@ -38,7 +39,10 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   return (
     <aside className="w-64 shrink-0 bg-slate-900 text-slate-200 flex flex-col min-h-screen">
       <div className="px-6 py-6 border-b border-slate-800">
-        <div className="text-xl font-bold text-white">Vantage</div>
+        <div className="flex items-center gap-2 text-xl font-bold text-white">
+          <VantageMark className="w-6 h-6 text-amber-400" />
+          Vantage
+        </div>
         <div className="text-xs text-slate-400 mt-1">AI Management Reporting</div>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
