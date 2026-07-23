@@ -95,7 +95,7 @@ export default function AskChat() {
                 {sources.map((s, i) => (
                   <li key={`${s.docId}-${i}`} className="text-xs text-slate-500">
                     <span className="font-medium text-slate-700">
-                      [{i + 1}] {s.projectName} — {s.docTitle}
+                      [{i + 1}] {s.docTitle}
                     </span>
                     <div className="mt-1 text-slate-400">{s.content}</div>
                   </li>
