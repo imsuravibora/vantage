@@ -29,8 +29,12 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  // API routes handle their own auth (requireRole/getCurrentProfile) and return
+  // proper JSON errors -- redirecting them to an HTML login page breaks any
+  // caller that isn't a browser with a session cookie (e.g. an uptime monitor).
+  const isApiPath = pathname.startsWith("/api/");
 
-  if (!user && !isPublicPath) {
+  if (!user && !isPublicPath && !isApiPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
