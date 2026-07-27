@@ -238,6 +238,32 @@ export interface Database {
         Update: Partial<{ comment: string }>;
         Relationships: [];
       };
+      signals: {
+        Row: {
+          id: number;
+          project_id: string;
+          source: "ticket" | "document" | "project";
+          source_id: string;
+          severity: "minor" | "moderate" | "major";
+          summary: string;
+          escalated_report_id: number | null;
+          created_at: string;
+        };
+        Insert: {
+          project_id: string;
+          source: "ticket" | "document" | "project";
+          source_id: string;
+          severity: "minor" | "moderate" | "major";
+          summary: string;
+          escalated_report_id?: number | null;
+        };
+        Update: Partial<{
+          severity: "minor" | "moderate" | "major";
+          summary: string;
+          escalated_report_id: number | null;
+        }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

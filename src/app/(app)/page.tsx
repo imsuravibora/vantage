@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
+import { listRecentSignals } from "@/lib/sentinel";
 import Badge from "@/components/Badge";
 import BudgetChart from "@/components/charts/BudgetChart";
 import RiskDistributionChart from "@/components/charts/RiskDistributionChart";
+import SignalsFeed from "@/components/SignalsFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ function formatCurrency(n: number) {
 }
 
 export default async function DashboardPage() {
-  const dataset = await getDataset();
+  const [dataset, signals] = await Promise.all([getDataset(), listRecentSignals()]);
   const summary = computeOrgSummary(dataset);
   const milestoneRollup = computeMilestoneRollup(dataset.milestones);
 
@@ -51,6 +53,10 @@ export default async function DashboardPage() {
           sub="this quarter"
           tone={summary.sev1IncidentsCount > 0 ? "bad" : "good"}
         />
+      </div>
+
+      <div className="mt-6">
+        <SignalsFeed signals={signals} />
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">

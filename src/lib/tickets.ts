@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getSupabase } from "./supabase-admin";
+import { flagBlockedTicket } from "./sentinel";
 import type { TicketStatus } from "./types";
 
 export interface NewTicketInput {
@@ -45,5 +46,14 @@ export async function updateTicketStatus(id: string, status: TicketStatus) {
     .single();
 
   if (error) throw new Error(`Failed to update ticket: ${error.message}`);
+
+  // Fire-and-forget: the Sentinel watches for this in the background, it
+  // never delays the actual status update from returning to the caller.
+  if (status === "blocked") {
+    flagBlockedTicket(data.id, data.project_id, data.title).catch((err) =>
+      console.error("[sentinel] flagBlockedTicket failed:", err)
+    );
+  }
+
   return data;
 }

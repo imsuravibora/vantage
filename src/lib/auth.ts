@@ -31,3 +31,11 @@ export async function requireRole(role: UserRole): Promise<Profile> {
   if (profile.role !== role) throw new AuthError("Not authorized for this action", 403);
   return profile;
 }
+
+// Throws AuthError (401) if not signed in. Use for API routes any logged-in
+// user (either role) may call.
+export async function requireAuth(): Promise<Profile> {
+  const profile = await getCurrentProfile();
+  if (!profile) throw new AuthError("Not authenticated", 401);
+  return profile;
+}

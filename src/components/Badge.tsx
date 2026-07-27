@@ -21,6 +21,10 @@ const COLOR_MAP: Record<string, string> = {
   "in-progress": "bg-blue-100 text-blue-800",
   todo: "bg-slate-100 text-slate-700",
   done: "bg-emerald-100 text-emerald-800",
+
+  minor: "bg-slate-100 text-slate-700",
+  moderate: "bg-amber-100 text-amber-800",
+  major: "bg-red-100 text-red-800",
 };
 
 export default function Badge({ value, label }: { value: string; label?: string }) {

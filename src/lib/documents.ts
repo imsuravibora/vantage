@@ -3,6 +3,7 @@ import { getSupabase } from "./supabase-admin";
 import { embedTexts } from "./embeddings";
 import { chunkText } from "./chunking";
 import { extractProjectFromDocument } from "./project-extraction";
+import { scanTextForRisk } from "./sentinel";
 
 export async function ingestDocument(projectId: string, title: string, content: string) {
   const supabase = getSupabase();
@@ -29,6 +30,13 @@ export async function ingestDocument(projectId: string, title: string, content: 
   }));
   const { error: chunkError } = await supabase.from("doc_chunks").insert(rows);
   if (chunkError) throw new Error(`Failed to embed document: ${chunkError.message}`);
+
+  // Fire-and-forget: the Sentinel reads the new document for risk signals in
+  // the background -- covers both "attach to existing project" and the
+  // charter doc for a brand-new project, since this function backs both.
+  scanTextForRisk(projectId, "document", docId, content).catch((err) =>
+    console.error("[sentinel] document scan failed:", err)
+  );
 
   return { docId };
 }
