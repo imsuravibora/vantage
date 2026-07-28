@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { ListChecks } from "lucide-react";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
+import { INPUT_CLASS } from "@/lib/ui";
 import type { Ticket, TicketStatus } from "@/lib/types";
 
 const STATUS_OPTIONS: TicketStatus[] = ["todo", "in-progress", "done", "blocked"];
@@ -83,8 +87,11 @@ export default function TicketManager({
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 bg-white">
-      <h3 className="font-semibold">Tickets</h3>
+    <Card className="p-4">
+      <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+        <ListChecks className="h-4 w-4 text-slate-400" />
+        Tickets
+      </h3>
 
       {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
 
@@ -92,7 +99,7 @@ export default function TicketManager({
         {tickets.map((t) => (
           <li key={t.id} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 last:border-0">
             <div className="min-w-0">
-              <div className="truncate">{t.title}</div>
+              <div className="truncate text-slate-700">{t.title}</div>
               <div className="text-xs text-slate-400">
                 {t.assigneeName} · {t.storyPoints}pt · Sprint {t.sprint}
               </div>
@@ -102,7 +109,7 @@ export default function TicketManager({
                 value={t.status}
                 onChange={(e) => handleStatusChange(t.id, e.target.value as TicketStatus)}
                 disabled={busyId === t.id}
-                className="rounded-md border border-slate-300 px-1.5 py-1 text-xs"
+                className="rounded-md border border-slate-300 px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>
@@ -120,17 +127,12 @@ export default function TicketManager({
 
       {canEdit && (
         <form onSubmit={handleCreate} className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="New ticket title"
-            className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-          />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New ticket title" className={INPUT_CLASS} />
           <div className="flex gap-2">
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
-              className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+              className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
             >
               {engineers.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -143,7 +145,7 @@ export default function TicketManager({
               min={1}
               value={storyPoints}
               onChange={(e) => setStoryPoints(Number(e.target.value))}
-              className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+              className="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
               title="Story points"
             />
             <input
@@ -151,19 +153,15 @@ export default function TicketManager({
               min={1}
               value={sprint}
               onChange={(e) => setSprint(Number(e.target.value))}
-              className="w-16 rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+              className="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
               title="Sprint"
             />
           </div>
-          <button
-            type="submit"
-            disabled={creating}
-            className="w-full rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-          >
+          <Button type="submit" disabled={creating} size="sm" className="w-full">
             {creating ? "Adding..." : "Add ticket"}
-          </button>
+          </Button>
         </form>
       )}
-    </div>
+    </Card>
   );
 }

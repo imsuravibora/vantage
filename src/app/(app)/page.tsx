@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Activity, Wallet, ShieldAlert, Flame, BarChart3, PieChart, Milestone, Users, ArrowRight } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
 import { listRecentSignals, listRecentDocumentReviews } from "@/lib/sentinel";
 import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
 import BudgetChart from "@/components/charts/BudgetChart";
 import RiskDistributionChart from "@/components/charts/RiskDistributionChart";
 import SignalsFeed from "@/components/SignalsFeed";
@@ -33,28 +35,32 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
       <p className="text-slate-500 mt-1">Cross-project rollup across {summary.projectCounts.total} projects</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <StatCard
+          icon={Activity}
           label="Project status"
           value={`${summary.projectCounts.onTrack} / ${summary.projectCounts.atRisk} / ${summary.projectCounts.offTrack}`}
           sub="on-track / at-risk / off-track"
         />
         <StatCard
+          icon={Wallet}
           label="Budget variance"
           value={`${summary.budgetVariancePct >= 0 ? "+" : ""}${summary.budgetVariancePct.toFixed(1)}%`}
           sub={`${formatCurrency(summary.budgetSpentTotal)} of ${formatCurrency(summary.budgetPlannedTotal)}`}
           tone={summary.budgetVariancePct > 10 ? "bad" : "good"}
         />
         <StatCard
+          icon={ShieldAlert}
           label="Open critical/high findings"
           value={String(summary.openCriticalHighFindings)}
           sub="security findings"
           tone={summary.openCriticalHighFindings > 0 ? "bad" : "good"}
         />
         <StatCard
+          icon={Flame}
           label="Sev1 incidents"
           value={String(summary.sev1IncidentsCount)}
           sub="this quarter"
@@ -71,28 +77,28 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Budget: planned vs. spent</h3>
+        <Card className="p-4">
+          <SectionHeading icon={BarChart3}>Budget: planned vs. spent</SectionHeading>
           <BudgetChart
             data={dataset.projects.map((p) => ({ name: p.name, planned: p.budgetPlanned, spent: p.budgetSpent }))}
           />
-        </div>
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Risk distribution</h3>
+        </Card>
+        <Card className="p-4">
+          <SectionHeading icon={PieChart}>Risk distribution</SectionHeading>
           <RiskDistributionChart
             data={(["low", "medium", "high"] as const).map((level) => ({
               name: level,
               value: summary.projectRisks.filter((r) => r.level === level).length,
             }))}
           />
-        </div>
+        </Card>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-lg font-semibold">Projects by risk</h2>
-        <div className="mt-3 overflow-x-auto border border-slate-200 rounded-lg">
+        <h2 className="text-lg font-semibold text-slate-900">Projects by risk</h2>
+        <Card className="mt-3 overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+            <thead className="bg-slate-50/80 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Project</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -106,10 +112,14 @@ export default async function DashboardPage() {
                 const risk = summary.projectRisks.find((r) => r.projectId === project.id)!;
                 const variance = budgetVariancePct(project);
                 return (
-                  <tr key={project.id}>
+                  <tr key={project.id} className="group transition-colors hover:bg-slate-50/60">
                     <td className="px-4 py-3 font-medium">
-                      <Link href={`/projects/${project.id}`} className="text-blue-700 hover:underline">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="inline-flex items-center gap-1 text-slate-800 hover:text-brand-600"
+                      >
                         {project.name}
+                        <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
                       </Link>
                     </td>
                     <td className="px-4 py-3">
@@ -118,7 +128,7 @@ export default async function DashboardPage() {
                     <td className="px-4 py-3">
                       <Badge value={risk.level} label={`${risk.level} (${risk.score})`} />
                     </td>
-                    <td className={`px-4 py-3 ${variance > 10 ? "text-red-600" : "text-slate-700"}`}>
+                    <td className={`px-4 py-3 ${variance > 10 ? "text-red-600 font-medium" : "text-slate-700"}`}>
                       {variance >= 0 ? "+" : ""}
                       {variance.toFixed(0)}%
                     </td>
@@ -128,52 +138,78 @@ export default async function DashboardPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Milestones</h3>
-          <div className="mt-2 text-sm text-slate-600 space-y-1">
-            <div>{milestoneRollup.onTrack} on-track</div>
-            <div>{milestoneRollup.atRisk} at-risk</div>
-            <div>{milestoneRollup.offTrack} off-track</div>
+        <Card className="p-4">
+          <SectionHeading icon={Milestone}>Milestones</SectionHeading>
+          <div className="mt-3 text-sm text-slate-600 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {milestoneRollup.onTrack} on-track
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {milestoneRollup.atRisk} at-risk
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {milestoneRollup.offTrack} off-track
+            </div>
           </div>
-        </div>
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Capacity</h3>
-          <div className="mt-2 text-sm text-slate-600 space-y-1">
-            <div>{summary.overloadedEngineerCount} engineer(s) overloaded</div>
-            <div>{summary.underloadedEngineerCount} engineer(s) underloaded</div>
+        </Card>
+        <Card className="p-4">
+          <SectionHeading icon={Users}>Capacity</SectionHeading>
+          <div className="mt-3 text-sm text-slate-600 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {summary.overloadedEngineerCount} engineer(s)
+              overloaded
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {summary.underloadedEngineerCount}{" "}
+              engineer(s) underloaded
+            </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
 }
 
+function SectionHeading({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+      <Icon className="h-4 w-4 text-slate-400" />
+      {children}
+    </h3>
+  );
+}
+
 function StatCard({
+  icon: Icon,
   label,
   value,
   sub,
   tone,
 }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;
   tone?: "good" | "bad";
 }) {
   return (
-    <div className="border border-slate-200 rounded-lg p-4 bg-white">
-      <div className="text-xs text-slate-500 uppercase tracking-wide">{label}</div>
+    <Card hover className="p-4">
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-slate-500 uppercase tracking-wide">{label}</div>
+        <Icon className={`h-4 w-4 ${tone === "bad" ? "text-red-500" : tone === "good" ? "text-emerald-500" : "text-slate-400"}`} />
+      </div>
       <div
-        className={`text-2xl font-bold mt-1 ${
+        className={`text-2xl font-semibold mt-1.5 tracking-tight ${
           tone === "bad" ? "text-red-600" : tone === "good" ? "text-emerald-600" : "text-slate-900"
         }`}
       >
         {value}
       </div>
       {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
-    </div>
+    </Card>
   );
 }

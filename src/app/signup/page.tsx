@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowRight, MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import VantageMark from "@/components/VantageMark";
+import AuthShell from "@/components/AuthShell";
+import Button from "@/components/Button";
+import { INPUT_CLASS, LABEL_CLASS } from "@/lib/ui";
 import type { UserRole } from "@/lib/types";
 
 export default function SignupPage() {
@@ -43,88 +46,73 @@ export default function SignupPage() {
 
   if (confirmEmailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-sm border border-slate-200 rounded-lg bg-white p-6 text-center">
-          <h1 className="text-xl font-bold">Check your email</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            We sent a confirmation link to {email}. Click it, then come back and sign in.
-          </p>
-          <Link href="/login" className="mt-4 inline-block text-sm text-blue-700 hover:underline">
-            Back to sign in
-          </Link>
+      <AuthShell>
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 ring-1 ring-brand-200">
+          <MailCheck className="h-5 w-5 text-brand-600" />
         </div>
-      </div>
+        <h1 className="text-2xl font-semibold text-slate-900 mt-4">Check your email</h1>
+        <p className="text-sm text-slate-500 mt-2">
+          We sent a confirmation link to <span className="font-medium text-slate-700">{email}</span>. Click it, then
+          come back and sign in.
+        </p>
+        <Link href="/login" className="mt-5 inline-block text-sm font-medium text-brand-600 hover:text-brand-700">
+          Back to sign in
+        </Link>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm border border-slate-200 rounded-lg bg-white p-6">
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <VantageMark className="w-6 h-6 text-amber-500" />
-          Vantage
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">Create an account</p>
+    <AuthShell>
+      <h1 className="text-2xl font-semibold text-slate-900">Create an account</h1>
+      <p className="text-sm text-slate-500 mt-1">Choose your role to get started</p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Full name</label>
-            <input
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="project_manager">Project Manager</option>
-              <option value="management">Management</option>
-            </select>
-          </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {loading ? "Creating account..." : "Sign up"}
-          </button>
-        </form>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <div>
+          <label className={LABEL_CLASS}>Full name</label>
+          <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className={INPUT_CLASS} />
+        </div>
+        <div>
+          <label className={LABEL_CLASS}>Email</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className={LABEL_CLASS}>Password</label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className={LABEL_CLASS}>Role</label>
+          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={INPUT_CLASS}>
+            <option value="project_manager">Project Manager</option>
+            <option value="management">Management</option>
+          </select>
+        </div>
+        {error && <div className="text-sm text-red-600">{error}</div>}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? "Creating account..." : "Sign up"}
+          {!loading && <ArrowRight className="h-4 w-4" />}
+        </Button>
+      </form>
 
-        <p className="mt-4 text-sm text-slate-500">
-          Already have an account?{" "}
-          <Link href="/login" className="text-blue-700 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-6 text-sm text-slate-500">
+        Already have an account?{" "}
+        <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

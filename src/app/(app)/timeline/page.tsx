@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { CalendarRange } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
+import Card from "@/components/Card";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,10 @@ export default async function TimelinePage() {
   if (allDates.length === 0) {
     return (
       <div className="p-8 max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold">Timeline</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+          <CalendarRange className="h-5 w-5 text-brand-500" />
+          Timeline
+        </h1>
         <p className="text-slate-400 mt-4">Nothing on the calendar yet.</p>
       </div>
     );
@@ -39,10 +44,13 @@ export default async function TimelinePage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold">Timeline</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+        <CalendarRange className="h-5 w-5 text-brand-500" />
+        Timeline
+      </h1>
       <p className="text-slate-500 mt-1">Milestones across all projects, positioned by due date.</p>
 
-      <div className="mt-6 border border-slate-200 rounded-lg bg-white p-6">
+      <Card className="mt-6 p-6">
         <div className="flex justify-between text-xs text-slate-400 mb-2">
           <span>{minDate.toISOString().slice(0, 10)}</span>
           <span>{maxDate.toISOString().slice(0, 10)}</span>
@@ -62,10 +70,10 @@ export default async function TimelinePage() {
               const milestones = dataset.milestones.filter((m) => m.projectId === project.id);
               return (
                 <div key={project.id}>
-                  <Link href={`/projects/${project.id}`} className="text-sm font-medium text-blue-700 hover:underline">
+                  <Link href={`/projects/${project.id}`} className="text-sm font-medium text-brand-600 hover:text-brand-700">
                     {project.name}
                   </Link>
-                  <div className="relative h-8 mt-1 bg-slate-50 rounded-md border border-slate-100">
+                  <div className="relative h-8 mt-1.5 bg-slate-50 rounded-lg border border-slate-100">
                     {milestones.map((m) => {
                       const pct = (daysBetween(minDate, new Date(m.dueDate)) / totalDays) * 100;
                       return (
@@ -75,7 +83,9 @@ export default async function TimelinePage() {
                           style={{ left: `${pct}%` }}
                           title={`${m.name} — due ${m.dueDate} (${m.status})`}
                         >
-                          <span className={`w-3 h-3 rounded-full border-2 border-white shadow ${STATUS_DOT[m.status]}`} />
+                          <span
+                            className={`w-3 h-3 rounded-full border-2 border-white shadow transition-transform hover:scale-125 ${STATUS_DOT[m.status]}`}
+                          />
                         </div>
                       );
                     })}
@@ -102,7 +112,7 @@ export default async function TimelinePage() {
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

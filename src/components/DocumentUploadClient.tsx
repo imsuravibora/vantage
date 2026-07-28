@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { FileText, Lock, CheckCircle2, Upload } from "lucide-react";
+import Button from "@/components/Button";
+import { INPUT_CLASS, LABEL_CLASS } from "@/lib/ui";
 
 type Mode = "existing" | "new";
 
@@ -79,19 +82,25 @@ export default function DocumentUploadClient({
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold">Documents</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+        <FileText className="h-5 w-5 text-brand-500" />
+        Documents
+      </h1>
       <p className="text-slate-500 mt-1">
         Upload a project document. It becomes searchable via Ask AI immediately — or, for a brand-new project, AI
         extracts the key facts to spin up the project itself.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 border border-slate-200 rounded-lg bg-white p-4 space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-6 space-y-4 rounded-xl border border-slate-200/70 bg-white p-4 shadow-card"
+      >
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setMode("existing")}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-              mode === "existing" ? "bg-slate-900 text-white" : "border border-slate-300 text-slate-600"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === "existing" ? "bg-slate-900 text-white shadow-sm" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
             }`}
           >
             Add to existing project
@@ -99,8 +108,8 @@ export default function DocumentUploadClient({
           <button
             type="button"
             onClick={() => setMode("new")}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-              mode === "new" ? "bg-slate-900 text-white" : "border border-slate-300 text-slate-600"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === "new" ? "bg-slate-900 text-white shadow-sm" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
             }`}
           >
             Create new project
@@ -110,12 +119,8 @@ export default function DocumentUploadClient({
         {mode === "existing" ? (
           <>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Project</label>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-              >
+              <label className={LABEL_CLASS}>Project</label>
+              <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={INPUT_CLASS}>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -124,23 +129,19 @@ export default function DocumentUploadClient({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Title (optional)</label>
+              <label className={LABEL_CLASS}>Title (optional)</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Defaults to the file name"
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                className={INPUT_CLASS}
               />
             </div>
           </>
         ) : (
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Team</label>
-            <select
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-            >
+            <label className={LABEL_CLASS}>Team</label>
+            <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className={INPUT_CLASS}>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -151,25 +152,27 @@ export default function DocumentUploadClient({
         )}
 
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Document (.txt or .md)</label>
+          <label className={LABEL_CLASS}>Document (.txt or .md)</label>
           <input
             type="file"
             accept=".txt,.md,text/plain,text/markdown"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm"
+            className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-slate-800"
           />
         </div>
 
-        <label className="flex items-start gap-2 text-sm text-slate-700">
+        <label className="flex items-start gap-2.5 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={confidential}
             onChange={(e) => setConfidential(e.target.checked)}
-            className="mt-0.5"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
           />
           <span>
-            Restrict to Management (confidential)
-            <span className="block text-xs text-slate-400">
+            <span className="flex items-center gap-1.5 font-medium text-slate-800">
+              <Lock className="h-3.5 w-3.5" /> Restrict to Management (confidential)
+            </span>
+            <span className="block text-xs text-slate-500 mt-0.5">
               For sensitive documents like an MCA — the file and its review will only be visible to Management, not
               other Project Managers.
             </span>
@@ -184,28 +187,28 @@ export default function DocumentUploadClient({
 
         {error && <div className="text-sm text-red-600">{error}</div>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading}>
           {loading ? "Processing..." : mode === "existing" ? "Upload document" : "Create project"}
-        </button>
+          {!loading && <Upload className="h-3.5 w-3.5" />}
+        </Button>
       </form>
 
       {result && (
-        <div className="mt-4 border border-emerald-200 bg-emerald-50 rounded-lg p-4 text-sm text-emerald-900">
-          {result.kind === "existing" ? (
-            <>&quot;{result.title}&quot; was added and indexed — ask about it on the Ask AI page.</>
-          ) : (
-            <>
-              Created project <span className="font-semibold">{result.name}</span> from the document.{" "}
-              <Link href={`/projects/${result.projectId}`} className="underline">
-                View it
-              </Link>
-              .
-            </>
-          )}
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <div>
+            {result.kind === "existing" ? (
+              <>&quot;{result.title}&quot; was added and indexed — ask about it on the Ask AI page.</>
+            ) : (
+              <>
+                Created project <span className="font-semibold">{result.name}</span> from the document.{" "}
+                <Link href={`/projects/${result.projectId}`} className="underline">
+                  View it
+                </Link>
+                .
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ScrollText, Lock, Building2 } from "lucide-react";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
 import type { DocumentReviewWithMeta, UserRole } from "@/lib/types";
 
 const CATEGORY_LABELS: { key: keyof Pick<DocumentReviewWithMeta, "compliance" | "security" | "timelines" | "risks" | "terms" | "agreements">; label: string }[] = [
@@ -29,9 +31,12 @@ export default function DocumentReviewsFeed({
   viewerRole: UserRole;
 }) {
   return (
-    <div className="border border-slate-200 rounded-lg p-4 bg-white">
+    <Card className="p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Document reviews</h3>
+        <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+          <ScrollText className="h-4 w-4 text-slate-400" />
+          Document reviews
+        </h3>
         <span className="text-xs text-slate-400">The Sentinel — read in full on upload</span>
       </div>
 
@@ -39,12 +44,20 @@ export default function DocumentReviewsFeed({
         {reviews.map((r) => {
           const restricted = r.confidential && viewerRole !== "management";
           return (
-            <li key={r.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+            <li key={r.id} className="rounded-lg border-b border-slate-100 px-1 pb-4 last:border-0 last:pb-0">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="text-sm font-medium text-slate-700 truncate">{r.docTitle}</span>
-                  {r.confidential && <Badge value="confidential" label="🔒 confidential" />}
-                  <Link href={`/projects/${r.projectId}`} className="text-xs font-medium text-blue-700 hover:underline">
+                  <span className="text-sm font-medium text-slate-800 truncate">{r.docTitle}</span>
+                  {r.confidential && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-100 ring-1 ring-inset ring-slate-700">
+                      <Lock className="h-3 w-3" />
+                      confidential
+                    </span>
+                  )}
+                  <Link
+                    href={`/projects/${r.projectId}`}
+                    className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                  >
                     {r.projectName}
                   </Link>
                 </div>
@@ -52,14 +65,16 @@ export default function DocumentReviewsFeed({
               </div>
 
               {restricted ? (
-                <div className="mt-2 text-sm text-slate-400 italic">Restricted to Management.</div>
+                <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-400 italic">
+                  <Lock className="h-3.5 w-3.5" /> Restricted to Management.
+                </div>
               ) : (
                 <>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
                     <Badge value={r.severity} />
                     {r.departments.length > 0 && (
-                      <span className="text-xs text-slate-500">
-                        Route to: {r.departments.join(", ")}
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                        <Building2 className="h-3 w-3" /> Route to: {r.departments.join(", ")}
                       </span>
                     )}
                   </div>
@@ -72,7 +87,7 @@ export default function DocumentReviewsFeed({
                     </ul>
                   )}
 
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3">
                     {CATEGORY_LABELS.filter(({ key }) => r[key].length > 0).map(({ key, label }) => (
                       <div key={key} className="text-xs text-slate-500">
                         <span className="font-medium text-slate-600">{label}:</span> {r[key].join("; ")}
@@ -84,8 +99,8 @@ export default function DocumentReviewsFeed({
             </li>
           );
         })}
-        {reviews.length === 0 && <li className="text-sm text-slate-400">No documents reviewed yet.</li>}
+        {reviews.length === 0 && <li className="text-sm text-slate-400 py-2">No documents reviewed yet.</li>}
       </ul>
-    </div>
+    </Card>
   );
 }

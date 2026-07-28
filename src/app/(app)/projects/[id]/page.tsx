@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, TriangleAlert, Wallet, Milestone, ShieldAlert, Flame, ScrollText, Lock } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeProjectRisk, budgetVariancePct } from "@/lib/analytics";
 import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
 import BudgetChart from "@/components/charts/BudgetChart";
 import MarkdownContent from "@/components/MarkdownContent";
 import TicketManager from "@/components/TicketManager";
@@ -34,12 +36,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <Link href="/" className="text-sm text-blue-700 hover:underline">
-        ← Back to dashboard
+      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-600">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
       </Link>
 
-      <div className="mt-3 flex items-center gap-3">
-        <h1 className="text-2xl font-bold">{project.name}</h1>
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{project.name}</h1>
         <Badge value={project.status} />
         <Badge value={risk.level} label={`${risk.level} risk (${risk.score})`} />
       </div>
@@ -48,8 +50,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </p>
 
       {risk.factors.length > 0 && (
-        <div className="mt-4 border border-amber-200 bg-amber-50 rounded-lg p-4">
-          <div className="text-xs font-medium text-amber-700 uppercase tracking-wide">Risk factors</div>
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 uppercase tracking-wide">
+            <TriangleAlert className="h-3.5 w-3.5" /> Risk factors
+          </div>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-sm text-amber-900">
             {risk.factors.map((f, i) => (
               <li key={i}>{f}</li>
@@ -59,8 +63,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       )}
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Budget</h3>
+        <Card className="p-4">
+          <SectionHeading icon={Wallet}>Budget</SectionHeading>
           <div className="mt-1 text-sm text-slate-600">
             ${project.budgetSpent.toLocaleString()} spent of ${project.budgetPlanned.toLocaleString()} planned (
             <span className={variance > 10 ? "text-red-600 font-medium" : ""}>
@@ -70,7 +74,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             )
           </div>
           <BudgetChart data={[{ name: project.name, planned: project.budgetPlanned, spent: project.budgetSpent }]} />
-        </div>
+        </Card>
 
         <TicketManager
           projectId={project.id}
@@ -81,12 +85,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Milestones</h3>
+        <Card className="p-4">
+          <SectionHeading icon={Milestone}>Milestones</SectionHeading>
           <ul className="mt-3 space-y-2 text-sm">
             {milestones.map((m) => (
               <li key={m.id} className="flex items-center justify-between">
-                <span>{m.name}</span>
+                <span className="text-slate-700">{m.name}</span>
                 <span className="flex items-center gap-2 text-slate-500">
                   {m.dueDate}
                   <Badge value={m.status} />
@@ -95,10 +99,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             ))}
             {milestones.length === 0 && <li className="text-slate-400">Nothing on the calendar yet</li>}
           </ul>
-        </div>
+        </Card>
 
-        <div className="border border-slate-200 rounded-lg p-4 bg-white">
-          <h3 className="font-semibold">Security findings</h3>
+        <Card className="p-4">
+          <SectionHeading icon={ShieldAlert}>Security findings</SectionHeading>
           <ul className="mt-3 space-y-2 text-sm">
             {findings.map((f) => (
               <li key={f.id} className="flex items-center justify-between gap-2">
@@ -110,16 +114,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             ))}
             {findings.length === 0 && <li className="text-slate-400">Clean bill of health — no findings here</li>}
           </ul>
-        </div>
+        </Card>
       </div>
 
-      <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
-        <h3 className="font-semibold">Incidents</h3>
+      <Card className="mt-6 p-4">
+        <SectionHeading icon={Flame}>Incidents</SectionHeading>
         <ul className="mt-3 space-y-3 text-sm">
           {incidents.map((inc) => (
             <li key={inc.id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
               <div className="flex items-center justify-between">
-                <span className="font-medium">{inc.title}</span>
+                <span className="font-medium text-slate-800">{inc.title}</span>
                 <Badge value={inc.severity} />
               </div>
               <div className="text-slate-500 mt-1">
@@ -129,10 +133,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           ))}
           {incidents.length === 0 && <li className="text-slate-400">Quiet quarter — nothing on fire</li>}
         </ul>
-      </div>
+      </Card>
 
-      <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
-        <h3 className="font-semibold">Notes &amp; retros</h3>
+      <Card className="mt-6 p-4">
+        <SectionHeading icon={ScrollText}>Notes &amp; retros</SectionHeading>
         <div className="mt-3 space-y-4">
           {docs.map((d) => {
             const restricted = d.confidential && profile?.role !== "management";
@@ -140,12 +144,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <div key={d.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center gap-2">
                   <div className="text-sm font-medium text-slate-700">{d.title}</div>
-                  {d.confidential && <Badge value="confidential" label="🔒 confidential" />}
+                  {d.confidential && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-100 ring-1 ring-inset ring-slate-700">
+                      <Lock className="h-3 w-3" />
+                      confidential
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1">
                   {restricted ? (
-                    <div className="text-sm text-slate-400 italic">
-                      Confidential — restricted to Management.
+                    <div className="flex items-center gap-1.5 text-sm text-slate-400 italic">
+                      <Lock className="h-3.5 w-3.5" /> Confidential — restricted to Management.
                     </div>
                   ) : (
                     <MarkdownContent content={d.content} />
@@ -158,7 +167,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="text-slate-400 text-sm">No notes yet — nobody&apos;s written anything down</div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
+  );
+}
+
+function SectionHeading({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+      <Icon className="h-4 w-4 text-slate-400" />
+      {children}
+    </h3>
   );
 }

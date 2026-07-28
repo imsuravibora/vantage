@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import confetti from "canvas-confetti";
+import { ClipboardList, Sparkles, Check, X, Download, MessageSquare } from "lucide-react";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
 import MarkdownContent from "@/components/MarkdownContent";
 import { downloadReportPdf } from "@/lib/pdf";
+import { INPUT_CLASS, LABEL_CLASS } from "@/lib/ui";
 import type { ReportRow } from "@/lib/reports";
 import type { FeedbackRow } from "@/lib/feedback";
 import type { Profile } from "@/lib/types";
@@ -93,18 +97,21 @@ export default function ReportsClient({
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold">Reports</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+        <ClipboardList className="h-5 w-5 text-brand-500" />
+        Reports
+      </h1>
       <p className="text-slate-500 mt-1">
         AI drafts an executive summary; a human reviews, edits, and approves before it counts as published.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3 border border-slate-200 rounded-lg p-4 bg-white">
+      <Card className="mt-4 flex flex-wrap items-end gap-3 p-4">
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Scope</label>
+          <label className={LABEL_CLASS}>Scope</label>
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/60"
           >
             <option value="">Org-wide</option>
             {projects.map((p) => (
@@ -114,14 +121,11 @@ export default function ReportsClient({
             ))}
           </select>
         </div>
-        <button
-          onClick={generateReport}
-          disabled={generating}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
+        <Button onClick={generateReport} disabled={generating}>
           {generating ? "Drafting..." : "Generate report"}
-        </button>
-      </div>
+          {!generating && <Sparkles className="h-3.5 w-3.5" />}
+        </Button>
+      </Card>
 
       {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
 
@@ -132,9 +136,9 @@ export default function ReportsClient({
         {reports.map((report) => {
           const reportFeedback = feedback.filter((f) => f.report_id === report.id);
           return (
-            <div key={report.id} className="border border-slate-200 rounded-lg p-4 bg-white">
+            <Card key={report.id} className="p-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{report.title}</h3>
+                <h3 className="font-semibold text-slate-900">{report.title}</h3>
                 <Badge value={report.status} />
               </div>
               <div className="text-xs text-slate-400 mt-1">{new Date(report.created_at).toLocaleString()}</div>
@@ -144,7 +148,7 @@ export default function ReportsClient({
                   value={editing[report.id] ?? report.draft_content}
                   onChange={(e) => setEditing((prev) => ({ ...prev, [report.id]: e.target.value }))}
                   rows={6}
-                  className="mt-3 w-full rounded-md border border-slate-300 p-2 text-sm"
+                  className={`mt-3 ${INPUT_CLASS}`}
                 />
               ) : (
                 <div className="mt-3">
@@ -154,20 +158,12 @@ export default function ReportsClient({
 
               {report.status === "pending-review" && (
                 <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => review(report.id, "approve")}
-                    disabled={busyId === report.id}
-                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => review(report.id, "reject")}
-                    disabled={busyId === report.id}
-                    className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
+                  <Button variant="success" size="sm" onClick={() => review(report.id, "approve")} disabled={busyId === report.id}>
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => review(report.id, "reject")} disabled={busyId === report.id}>
+                    <X className="h-3.5 w-3.5" /> Reject
+                  </Button>
                 </div>
               )}
 
@@ -178,22 +174,21 @@ export default function ReportsClient({
                     {report.reviewed_at ? new Date(report.reviewed_at).toLocaleString() : "—"}
                   </div>
                   {report.status === "approved" && (
-                    <button
-                      onClick={() => downloadReportPdf(report)}
-                      className="text-xs rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-100"
-                    >
-                      Download PDF
-                    </button>
+                    <Button variant="secondary" size="sm" onClick={() => downloadReportPdf(report)}>
+                      <Download className="h-3 w-3" /> Download PDF
+                    </Button>
                   )}
                 </div>
               )}
 
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Leadership feedback</div>
+                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <MessageSquare className="h-3.5 w-3.5" /> Leadership feedback
+                </div>
                 <ul className="mt-2 space-y-2">
                   {reportFeedback.map((f) => (
                     <li key={f.id} className="text-sm">
-                      <span className="font-medium">{f.author_name}</span>{" "}
+                      <span className="font-medium text-slate-800">{f.author_name}</span>{" "}
                       <span className="text-xs text-slate-400">{new Date(f.created_at).toLocaleString()}</span>
                       <div className="text-slate-600">{f.comment}</div>
                     </li>
@@ -207,17 +202,14 @@ export default function ReportsClient({
                     value={feedbackDraft[report.id] ?? ""}
                     onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [report.id]: e.target.value }))}
                     placeholder={`Comment as ${currentUser.fullName ?? currentUser.email}...`}
-                    className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                    className={`flex-1 ${INPUT_CLASS}`}
                   />
-                  <button
-                    onClick={() => submitFeedback(report.id)}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => submitFeedback(report.id)}>
                     Post
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>

@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles, Send } from "lucide-react";
 import type { RagSource } from "@/lib/rag";
 import MarkdownContent from "@/components/MarkdownContent";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
+import { INPUT_CLASS } from "@/lib/ui";
 
 const SAMPLE_QUESTIONS = [
   "Why is Phoenix at risk?",
@@ -42,9 +46,13 @@ export default function AskChat() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold">Ask AI</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+        <Sparkles className="h-5 w-5 text-brand-500" />
+        Ask AI
+      </h1>
       <p className="text-slate-500 mt-1">
-        Ask a question in plain language — answers are grounded in real retros, postmortems, and status updates, with sources cited.
+        Ask a question in plain language — answers are grounded in real retros, postmortems, and status updates, with
+        sources cited.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -55,7 +63,7 @@ export default function AskChat() {
               setQuestion(q);
               ask(q);
             }}
-            className="text-xs rounded-full border border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+            className="text-xs rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-600 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
           >
             {q}
           </button>
@@ -73,21 +81,18 @@ export default function AskChat() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask about risk, budget, incidents, security..."
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className={`flex-1 ${INPUT_CLASS}`}
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading}>
           {loading ? "Asking..." : "Ask"}
-        </button>
+          {!loading && <Send className="h-3.5 w-3.5" />}
+        </Button>
       </form>
 
       {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
 
       {answer && (
-        <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
+        <Card className="mt-6 p-4">
           <MarkdownContent content={answer} />
           {sources.length > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-100">
@@ -104,7 +109,7 @@ export default function AskChat() {
               </ul>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import VantageMark from "@/components/VantageMark";
+import AuthShell from "@/components/AuthShell";
+import Button from "@/components/Button";
+import { INPUT_CLASS, LABEL_CLASS } from "@/lib/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,52 +32,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm border border-slate-200 rounded-lg bg-white p-6">
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <VantageMark className="w-6 h-6 text-amber-500" />
-          Vantage
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
+    <AuthShell>
+      <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
+      <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <div>
+          <label className={LABEL_CLASS}>Email</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div>
+          <label className={LABEL_CLASS}>Password</label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={INPUT_CLASS}
+          />
+        </div>
+        {error && <div className="text-sm text-red-600">{error}</div>}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? "Signing in..." : "Sign in"}
+          {!loading && <ArrowRight className="h-4 w-4" />}
+        </Button>
+      </form>
 
-        <p className="mt-4 text-sm text-slate-500">
-          No account?{" "}
-          <Link href="/signup" className="text-blue-700 hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-6 text-sm text-slate-500">
+        No account?{" "}
+        <Link href="/signup" className="font-medium text-brand-600 hover:text-brand-700">
+          Sign up
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

@@ -1,6 +1,8 @@
+import { Gauge } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeEngineerCapacity } from "@/lib/analytics";
 import Badge from "@/components/Badge";
+import Card from "@/components/Card";
 import CapacityChart from "@/components/charts/CapacityChart";
 
 export const dynamic = "force-dynamic";
@@ -23,25 +25,28 @@ export default async function CapacityPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold">Capacity</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+        <Gauge className="h-5 w-5 text-brand-500" />
+        Capacity
+      </h1>
       <p className="text-slate-500 mt-1">
         Average allocation vs. weekly capacity over the last 8 weeks — a resourcing view, not a productivity ranking.
       </p>
 
-      <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
-        <h2 className="font-semibold">Utilization by engineer</h2>
+      <Card className="mt-6 p-4">
+        <h2 className="font-semibold text-slate-900">Utilization by engineer</h2>
         <CapacityChart
           data={rows.map((r) => ({ name: r.name, utilizationPct: r.utilizationPct, status: r.status }))}
         />
-      </div>
+      </Card>
 
       <div className="mt-8 space-y-8">
         {[...byTeam.entries()].map(([teamName, teamRows]) => (
           <div key={teamName}>
-            <h2 className="text-lg font-semibold">{teamName}</h2>
-            <div className="mt-2 overflow-x-auto border border-slate-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-slate-900">{teamName}</h2>
+            <Card className="mt-2 overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-slate-500">
+                <thead className="bg-slate-50/80 text-left text-slate-500">
                   <tr>
                     <th className="px-4 py-3 font-medium">Engineer</th>
                     <th className="px-4 py-3 font-medium">Role</th>
@@ -53,12 +58,12 @@ export default async function CapacityPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {teamRows.map((row) => (
-                    <tr key={row.engineerId}>
-                      <td className="px-4 py-3 font-medium">{row.name}</td>
+                    <tr key={row.engineerId} className="transition-colors hover:bg-slate-50/60">
+                      <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
                       <td className="px-4 py-3 text-slate-500">{row.role}</td>
-                      <td className="px-4 py-3">{row.weeklyCapacityHours}h</td>
-                      <td className="px-4 py-3">{row.avgAllocatedHours}h</td>
-                      <td className="px-4 py-3">{row.utilizationPct}%</td>
+                      <td className="px-4 py-3 text-slate-700">{row.weeklyCapacityHours}h</td>
+                      <td className="px-4 py-3 text-slate-700">{row.avgAllocatedHours}h</td>
+                      <td className="px-4 py-3 text-slate-700">{row.utilizationPct}%</td>
                       <td className="px-4 py-3">
                         <Badge value={row.status} />
                       </td>
@@ -66,7 +71,7 @@ export default async function CapacityPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           </div>
         ))}
       </div>
