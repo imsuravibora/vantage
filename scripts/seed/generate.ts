@@ -283,6 +283,7 @@ export function generateDataset(): Dataset {
       title,
       content,
       createdAt: rng.daysAgo(daysAgoOffset).toISOString(),
+      confidential: false,
     });
     docIdx++;
   }

@@ -94,6 +94,29 @@ export interface NarrativeDoc {
   title: string;
   content: string;
   createdAt: string;
+  confidential: boolean;
+}
+
+export interface DocumentReview {
+  id: number;
+  narrativeDocId: string;
+  projectId: string;
+  compliance: string[];
+  security: string[];
+  timelines: string[];
+  risks: string[];
+  terms: string[];
+  agreements: string[];
+  mustRead: string[];
+  departments: string[];
+  severity: SignalSeverity;
+  createdAt: string;
+}
+
+export interface DocumentReviewWithMeta extends DocumentReview {
+  docTitle: string;
+  projectName: string;
+  confidential: boolean;
 }
 
 export interface Dataset {

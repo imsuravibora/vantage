@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
-import { listRecentSignals } from "@/lib/sentinel";
+import { listRecentSignals, listRecentDocumentReviews } from "@/lib/sentinel";
+import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
 import BudgetChart from "@/components/charts/BudgetChart";
 import RiskDistributionChart from "@/components/charts/RiskDistributionChart";
 import SignalsFeed from "@/components/SignalsFeed";
+import DocumentReviewsFeed from "@/components/DocumentReviewsFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,12 @@ function formatCurrency(n: number) {
 }
 
 export default async function DashboardPage() {
-  const [dataset, signals] = await Promise.all([getDataset(), listRecentSignals()]);
+  const [dataset, signals, documentReviews, profile] = await Promise.all([
+    getDataset(),
+    listRecentSignals(),
+    listRecentDocumentReviews(),
+    getCurrentProfile(),
+  ]);
   const summary = computeOrgSummary(dataset);
   const milestoneRollup = computeMilestoneRollup(dataset.milestones);
 
@@ -57,6 +64,10 @@ export default async function DashboardPage() {
 
       <div className="mt-6">
         <SignalsFeed signals={signals} />
+      </div>
+
+      <div className="mt-6">
+        <DocumentReviewsFeed reviews={documentReviews} viewerRole={profile?.role ?? "project_manager"} />
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">

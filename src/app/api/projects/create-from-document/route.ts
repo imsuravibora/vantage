@@ -19,7 +19,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { teamId, fileName, content } = body as { teamId?: unknown; fileName?: unknown; content?: unknown };
+  const { teamId, fileName, content, confidential } = body as {
+    teamId?: unknown;
+    fileName?: unknown;
+    content?: unknown;
+    confidential?: unknown;
+  };
 
   if (typeof teamId !== "string" || teamId.trim().length === 0) {
     return NextResponse.json({ error: "'teamId' must be a non-empty string" }, { status: 400 });
@@ -35,7 +40,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { projectId, extracted } = await createProjectFromDocument(teamId, fileName.trim(), content);
+    const { projectId, extracted } = await createProjectFromDocument(
+      teamId,
+      fileName.trim(),
+      content,
+      confidential === true
+    );
     return NextResponse.json({ projectId, extracted });
   } catch (err) {
     console.error("[/api/projects/create-from-document] failed:", err);

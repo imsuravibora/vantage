@@ -3,9 +3,9 @@ import { getSupabase } from "./supabase-admin";
 import { embedTexts } from "./embeddings";
 import { chunkText } from "./chunking";
 import { extractProjectFromDocument } from "./project-extraction";
-import { scanTextForRisk } from "./sentinel";
+import { reviewDocument } from "./sentinel";
 
-export async function ingestDocument(projectId: string, title: string, content: string) {
+export async function ingestDocument(projectId: string, title: string, content: string, confidential = false) {
   const supabase = getSupabase();
   const docId = `doc_${randomUUID().slice(0, 8)}`;
 
@@ -16,6 +16,7 @@ export async function ingestDocument(projectId: string, title: string, content: 
     title,
     content,
     created_at: new Date().toISOString(),
+    confidential,
   });
   if (docError) throw new Error(`Failed to save document: ${docError.message}`);
 
@@ -31,17 +32,22 @@ export async function ingestDocument(projectId: string, title: string, content: 
   const { error: chunkError } = await supabase.from("doc_chunks").insert(rows);
   if (chunkError) throw new Error(`Failed to embed document: ${chunkError.message}`);
 
-  // Fire-and-forget: the Sentinel reads the new document for risk signals in
-  // the background -- covers both "attach to existing project" and the
-  // charter doc for a brand-new project, since this function backs both.
-  scanTextForRisk(projectId, "document", docId, content).catch((err) =>
-    console.error("[sentinel] document scan failed:", err)
+  // Fire-and-forget: the Sentinel reads the new document across several
+  // categories in the background -- covers both "attach to existing project"
+  // and the charter doc for a brand-new project, since this function backs both.
+  reviewDocument(projectId, docId, content).catch((err) =>
+    console.error("[sentinel] document review failed:", err)
   );
 
   return { docId };
 }
 
-export async function createProjectFromDocument(teamId: string, fileName: string, content: string) {
+export async function createProjectFromDocument(
+  teamId: string,
+  fileName: string,
+  content: string,
+  confidential = false
+) {
   const extracted = await extractProjectFromDocument(content);
   const supabase = getSupabase();
   const projectId = `proj_${randomUUID().slice(0, 8)}`;
@@ -70,7 +76,7 @@ export async function createProjectFromDocument(teamId: string, fileName: string
     if (msError) throw new Error(`Failed to create milestones: ${msError.message}`);
   }
 
-  await ingestDocument(projectId, fileName, content);
+  await ingestDocument(projectId, fileName, content, confidential);
 
   return { projectId, extracted };
 }

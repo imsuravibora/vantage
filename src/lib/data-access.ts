@@ -123,6 +123,7 @@ export async function getDataset(): Promise<Dataset> {
     title: d.title,
     content: d.content,
     createdAt: d.created_at,
+    confidential: d.confidential,
   }));
 
   return { teams, engineers, projects, tickets, milestones, securityFindings, incidents, allocations, narrativeDocs };

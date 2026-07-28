@@ -134,14 +134,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
         <h3 className="font-semibold">Notes &amp; retros</h3>
         <div className="mt-3 space-y-4">
-          {docs.map((d) => (
-            <div key={d.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
-              <div className="text-sm font-medium text-slate-700">{d.title}</div>
-              <div className="mt-1">
-                <MarkdownContent content={d.content} />
+          {docs.map((d) => {
+            const restricted = d.confidential && profile?.role !== "management";
+            return (
+              <div key={d.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium text-slate-700">{d.title}</div>
+                  {d.confidential && <Badge value="confidential" label="🔒 confidential" />}
+                </div>
+                <div className="mt-1">
+                  {restricted ? (
+                    <div className="text-sm text-slate-400 italic">
+                      Confidential — restricted to Management.
+                    </div>
+                  ) : (
+                    <MarkdownContent content={d.content} />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {docs.length === 0 && (
             <div className="text-slate-400 text-sm">No notes yet — nobody&apos;s written anything down</div>
           )}

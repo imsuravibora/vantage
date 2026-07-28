@@ -1,12 +1,6 @@
 import { getSupabase } from "./supabase-admin";
 import { completeJson } from "./groq";
-import type { SignalSource, SignalSeverity } from "./types";
-
-interface SignalCheckResult {
-  hasSignal: boolean;
-  severity: SignalSeverity;
-  summary: string;
-}
+import type { SignalSource, SignalSeverity, DocumentReviewWithMeta } from "./types";
 
 export interface SignalWithProject {
   id: number;
@@ -39,23 +33,6 @@ export async function listRecentSignals(limit = 20): Promise<SignalWithProject[]
     escalatedReportId: row.escalated_report_id,
     createdAt: row.created_at,
   }));
-}
-
-const SIGNAL_SYSTEM_PROMPT = `You scan project text for risk signals a rules-based system would miss -- blockers, threats, morale issues, vague ownership, anything concerning that isn't just a budget/schedule/incident number someone would already track. Return ONLY JSON: {"hasSignal": boolean, "severity": "minor"|"moderate"|"major", "summary": string}. If nothing concerning, hasSignal is false and summary is "". Severity guide: minor = worth noting but not urgent, moderate = needs attention this week, major = needs leadership attention now. Never invent a risk that isn't actually stated or clearly implied in the text.`;
-
-export async function checkTextForSignal(text: string): Promise<SignalCheckResult> {
-  const raw = (await completeJson([
-    { role: "system", content: SIGNAL_SYSTEM_PROMPT },
-    { role: "user", content: text },
-  ])) as Record<string, unknown>;
-
-  const hasSignal = raw.hasSignal === true;
-  const severity: SignalSeverity = (["minor", "moderate", "major"] as const).includes(raw.severity as SignalSeverity)
-    ? (raw.severity as SignalSeverity)
-    : "minor";
-  const summary = typeof raw.summary === "string" ? raw.summary : "";
-
-  return { hasSignal, severity, summary };
 }
 
 export async function recordSignal(
@@ -100,15 +77,141 @@ export async function flagBlockedTicket(ticketId: string, projectId: string, tit
   await recordSignal(projectId, "ticket", ticketId, "minor", `Ticket blocked: "${title}"`);
 }
 
-// AI-based -- for unstructured text (documents, extracted project charters)
-// where a real risk signal might be worded in ways no fixed rule would catch.
-export async function scanTextForRisk(projectId: string, source: SignalSource, sourceId: string, text: string) {
+export interface DocumentReviewResult {
+  compliance: string[];
+  security: string[];
+  timelines: string[];
+  risks: string[];
+  terms: string[];
+  agreements: string[];
+  mustRead: string[];
+  departments: string[];
+  severity: SignalSeverity;
+}
+
+const REVIEW_SYSTEM_PROMPT = `You are reviewing a project document for a management reporting tool. Read the text and pull out concrete points under each category below. Only include a point if it is actually stated or clearly implied in the text -- never invent one. Leave a category as an empty array if nothing relevant is present.
+
+Return ONLY JSON in this exact shape:
+{"compliance": string[], "security": string[], "timelines": string[], "risks": string[], "terms": string[], "agreements": string[], "mustRead": string[], "departments": string[], "severity": "minor"|"moderate"|"major"}
+
+Category guide:
+- compliance: regulatory, legal, or policy obligations mentioned
+- security: security requirements, findings, or exposures mentioned
+- timelines: deadlines, termination notices, renewal dates, key dates
+- risks: anything that threatens delivery, cost, or continuity
+- terms: guarantee/warranty periods, SLAs, service terms
+- agreements: contractual commitments or obligations between the parties
+- mustRead: the handful of points a Project Manager absolutely needs to read, drawn from the categories above (plain sentences, not category names) -- empty array if nothing rises to that bar
+- departments: which internal departments should review this (e.g. "Legal", "Security", "Finance", "Engineering") -- only ones actually relevant, never a generic full list
+- severity: "major" if leadership needs to know now, "moderate" if it needs attention this week, "minor" if just worth noting
+
+If the document has nothing relevant to any category, return every array empty and severity "minor".`;
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+}
+
+export async function reviewDocumentText(text: string): Promise<DocumentReviewResult> {
+  const raw = (await completeJson([
+    { role: "system", content: REVIEW_SYSTEM_PROMPT },
+    { role: "user", content: text },
+  ])) as Record<string, unknown>;
+
+  const severity: SignalSeverity = (["minor", "moderate", "major"] as const).includes(raw.severity as SignalSeverity)
+    ? (raw.severity as SignalSeverity)
+    : "minor";
+
+  return {
+    compliance: toStringArray(raw.compliance),
+    security: toStringArray(raw.security),
+    timelines: toStringArray(raw.timelines),
+    risks: toStringArray(raw.risks),
+    terms: toStringArray(raw.terms),
+    agreements: toStringArray(raw.agreements),
+    mustRead: toStringArray(raw.mustRead),
+    departments: toStringArray(raw.departments),
+    severity,
+  };
+}
+
+// AI-based -- reads a newly uploaded document (or a new project's charter,
+// since ingestDocument backs both) across several categories at once, saves
+// the full breakdown for the Dashboard, and still raises a Signal so the
+// existing feed/escalation path keeps working unchanged.
+export async function reviewDocument(projectId: string, docId: string, text: string) {
   try {
-    const result = await checkTextForSignal(text);
-    if (result.hasSignal) {
-      await recordSignal(projectId, source, sourceId, result.severity, result.summary);
+    const review = await reviewDocumentText(text);
+    const supabase = getSupabase();
+
+    const { error } = await supabase.from("document_reviews").insert({
+      narrative_doc_id: docId,
+      project_id: projectId,
+      compliance: review.compliance,
+      security: review.security,
+      timelines: review.timelines,
+      risks: review.risks,
+      terms: review.terms,
+      agreements: review.agreements,
+      must_read: review.mustRead,
+      departments: review.departments,
+      severity: review.severity,
+    });
+    if (error) console.error("[sentinel] failed to record document review:", error.message);
+
+    const categoryCounts = [
+      review.compliance,
+      review.security,
+      review.timelines,
+      review.risks,
+      review.terms,
+      review.agreements,
+    ];
+    const totalPoints = categoryCounts.reduce((sum, c) => sum + c.length, 0);
+
+    if (totalPoints > 0) {
+      const nonEmptyCategoryCount = categoryCounts.filter((c) => c.length > 0).length;
+      const summary =
+        review.mustRead[0] ??
+        `Document reviewed — ${totalPoints} point(s) found across ${nonEmptyCategoryCount} area(s)`;
+      await recordSignal(projectId, "document", docId, review.severity, summary);
     }
   } catch (err) {
-    console.error("[sentinel] scan failed:", err);
+    console.error("[sentinel] document review failed:", err);
   }
+}
+
+export async function listRecentDocumentReviews(limit = 10): Promise<DocumentReviewWithMeta[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("document_reviews")
+    .select("*, projects(name), narrative_docs(title, confidential)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(`Failed to list document reviews: ${error.message}`);
+
+  return (data ?? []).map((row) => {
+    const joined = row as unknown as {
+      projects: { name: string } | null;
+      narrative_docs: { title: string; confidential: boolean } | null;
+    };
+    return {
+      id: row.id,
+      narrativeDocId: row.narrative_doc_id,
+      docTitle: joined.narrative_docs?.title ?? row.narrative_doc_id,
+      projectId: row.project_id,
+      projectName: joined.projects?.name ?? row.project_id,
+      confidential: joined.narrative_docs?.confidential ?? false,
+      compliance: row.compliance,
+      security: row.security,
+      timelines: row.timelines,
+      risks: row.risks,
+      terms: row.terms,
+      agreements: row.agreements,
+      mustRead: row.must_read,
+      departments: row.departments,
+      severity: row.severity,
+      createdAt: row.created_at,
+    };
+  });
 }

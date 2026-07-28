@@ -19,7 +19,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { projectId, title, content } = body as { projectId?: unknown; title?: unknown; content?: unknown };
+  const { projectId, title, content, confidential } = body as {
+    projectId?: unknown;
+    title?: unknown;
+    content?: unknown;
+    confidential?: unknown;
+  };
 
   if (typeof projectId !== "string" || projectId.trim().length === 0) {
     return NextResponse.json({ error: "'projectId' must be a non-empty string" }, { status: 400 });
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { docId } = await ingestDocument(projectId, title.trim(), content);
+    const { docId } = await ingestDocument(projectId, title.trim(), content, confidential === true);
     return NextResponse.json({ docId });
   } catch (err) {
     console.error("[/api/documents] failed:", err);

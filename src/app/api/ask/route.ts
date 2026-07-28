@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { answerQuestion } from "@/lib/rag";
+import { requireAuth, AuthError } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  let profile;
+  try {
+    profile = await requireAuth();
+  } catch (err) {
+    if (err instanceof AuthError) return NextResponse.json({ error: err.message }, { status: err.status });
+    throw err;
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -18,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await answerQuestion(question.trim());
+    const result = await answerQuestion(question.trim(), profile.role);
     return NextResponse.json(result);
   } catch (err) {
     console.error("[/api/ask] failed:", err);

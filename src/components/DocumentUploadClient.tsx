@@ -26,6 +26,7 @@ export default function DocumentUploadClient({
   const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
   const [title, setTitle] = useState("");
+  const [confidential, setConfidential] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<
@@ -51,7 +52,7 @@ export default function DocumentUploadClient({
         const res = await fetch("/api/documents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId, title: title.trim() || file.name, content }),
+          body: JSON.stringify({ projectId, title: title.trim() || file.name, content, confidential }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to upload document");
@@ -60,7 +61,7 @@ export default function DocumentUploadClient({
         const res = await fetch("/api/projects/create-from-document", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teamId, fileName: file.name, content }),
+          body: JSON.stringify({ teamId, fileName: file.name, content, confidential }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to create project");
@@ -68,6 +69,7 @@ export default function DocumentUploadClient({
       }
       setFile(null);
       setTitle("");
+      setConfidential(false);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -156,6 +158,28 @@ export default function DocumentUploadClient({
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm"
           />
+        </div>
+
+        <label className="flex items-start gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={confidential}
+            onChange={(e) => setConfidential(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            Restrict to Management (confidential)
+            <span className="block text-xs text-slate-400">
+              For sensitive documents like an MCA — the file and its review will only be visible to Management, not
+              other Project Managers.
+            </span>
+          </span>
+        </label>
+
+        <div className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+          On upload, the full text is sent once to our AI provider (Groq) to generate the review below. When someone
+          later asks a question on Ask AI, only the specific matching passages are sent — never the whole document.
+          Nothing is used to train other models.
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}

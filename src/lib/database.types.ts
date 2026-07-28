@@ -142,6 +142,7 @@ export interface Database {
           title: string;
           content: string;
           created_at: string;
+          confidential: boolean;
         };
         Insert: {
           id: string;
@@ -150,6 +151,7 @@ export interface Database {
           title: string;
           content: string;
           created_at: string;
+          confidential?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["narrative_docs"]["Insert"]>;
         Relationships: [];
@@ -262,6 +264,38 @@ export interface Database {
           summary: string;
           escalated_report_id: number | null;
         }>;
+        Relationships: [];
+      };
+      document_reviews: {
+        Row: {
+          id: number;
+          narrative_doc_id: string;
+          project_id: string;
+          compliance: string[];
+          security: string[];
+          timelines: string[];
+          risks: string[];
+          terms: string[];
+          agreements: string[];
+          must_read: string[];
+          departments: string[];
+          severity: "minor" | "moderate" | "major";
+          created_at: string;
+        };
+        Insert: {
+          narrative_doc_id: string;
+          project_id: string;
+          compliance?: string[];
+          security?: string[];
+          timelines?: string[];
+          risks?: string[];
+          terms?: string[];
+          agreements?: string[];
+          must_read?: string[];
+          departments?: string[];
+          severity: "minor" | "moderate" | "major";
+        };
+        Update: Partial<Database["public"]["Tables"]["document_reviews"]["Insert"]>;
         Relationships: [];
       };
     };
