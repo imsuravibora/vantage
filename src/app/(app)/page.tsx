@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, Wallet, ShieldAlert, Flame, BarChart3, PieChart, Milestone, Users, ArrowRight } from "lucide-react";
+import { Activity, Wallet, ShieldAlert, Flame, BarChart3, PieChart, Milestone, Users, ArrowRight, Lightbulb, TrendingUp } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
 import { listRecentSignals, listRecentDocumentReviews } from "@/lib/sentinel";
@@ -40,6 +40,35 @@ export default async function DashboardPage() {
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
       <p className="text-slate-500 mt-1">Cross-project rollup across {summary.projectCounts.total} projects</p>
+
+      <Card className="mt-6 p-5 border-brand-200/70 bg-brand-50/40">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 ring-1 ring-brand-500/25">
+              <Lightbulb className="h-4.5 w-4.5 text-brand-600" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Signals explain themselves</div>
+              <div className="text-sm text-slate-600 mt-0.5">
+                Every item in Signals below comes with a plain-language "Why" grounded in the actual evidence the
+                Sentinel read — not just a flag, an explanation.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 ring-1 ring-brand-500/25">
+              <TrendingUp className="h-4.5 w-4.5 text-brand-600" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Real delivery forecasting</div>
+              <div className="text-sm text-slate-600 mt-0.5">
+                Every project page projects whether it'll hit its deadline from actual ticket velocity — not just
+                whatever status the PM typed in.
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <StatCard
