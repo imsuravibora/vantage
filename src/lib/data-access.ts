@@ -56,6 +56,7 @@ export async function getDataset(): Promise<Dataset> {
     teamId: e.team_id,
     role: e.role,
     weeklyCapacityHours: e.weekly_capacity_hours,
+    profileId: e.profile_id,
   }));
 
   const projects: Project[] = (projectsRes.data ?? []).map((p) => ({

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { draftExecutiveReport } from "@/lib/reports";
-import { requireRole, AuthError } from "@/lib/auth";
+import { listAssignedProjectIds } from "@/lib/assignments";
+import { requireAuth, AuthError } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  let profile;
   try {
-    await requireRole("management");
+    profile = await requireAuth();
   } catch (err) {
     if (err instanceof AuthError) return NextResponse.json({ error: err.message }, { status: err.status });
     throw err;
@@ -23,8 +25,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "'projectId' must be a string if provided" }, { status: 400 });
   }
 
+  if (profile.role === "project_manager") {
+    if (!projectId) {
+      return NextResponse.json(
+        { error: "Project Managers must pick a project — org-wide reports are Management-only." },
+        { status: 400 }
+      );
+    }
+    const assigned = await listAssignedProjectIds(profile.id);
+    if (!assigned.includes(projectId)) {
+      return NextResponse.json({ error: "You're not assigned to that project." }, { status: 403 });
+    }
+  }
+
   try {
-    const report = await draftExecutiveReport(projectId);
+    const report = await draftExecutiveReport(projectId, profile);
     return NextResponse.json({ report });
   } catch (err) {
     console.error("[/api/reports/generate] failed:", err);

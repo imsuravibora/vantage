@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, TriangleAlert, Wallet, Milestone, ShieldAlert, Flame, ScrollText, Lock } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeProjectRisk, budgetVariancePct } from "@/lib/analytics";
@@ -16,6 +16,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const [dataset, profile] = await Promise.all([getDataset(), getCurrentProfile()]);
 
+  if (!profile) redirect("/login");
+
   const project = dataset.projects.find((p) => p.id === id);
   if (!project) notFound();
 
@@ -28,11 +30,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const risk = computeProjectRisk(project, milestones, findings, incidents);
   const variance = budgetVariancePct(project);
 
-  const teamEngineers = dataset.engineers.filter((e) => e.teamId === project.teamId);
   const ticketsWithAssignee = tickets.map((t) => ({
     ...t,
-    assigneeName: dataset.engineers.find((e) => e.id === t.assigneeId)?.name ?? t.assigneeId,
+    assigneeName: dataset.engineers.find((e) => e.id === t.assigneeId)?.name ?? "Unassigned",
   }));
+  const viewerEngineerId =
+    profile.role === "engineer" ? dataset.engineers.find((e) => e.profileId === profile.id)?.id ?? null : null;
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -79,8 +82,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <TicketManager
           projectId={project.id}
           initialTickets={ticketsWithAssignee}
-          engineers={teamEngineers.map((e) => ({ id: e.id, name: e.name }))}
-          canEdit={profile?.role === "project_manager"}
+          engineers={dataset.engineers.map((e) => ({ id: e.id, name: e.name }))}
+          viewerRole={profile.role}
+          viewerEngineerId={viewerEngineerId}
         />
       </div>
 

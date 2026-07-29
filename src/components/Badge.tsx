@@ -54,6 +54,7 @@ const DOT_MAP: Record<string, string> = {
   "in-progress": "bg-blue-500",
   todo: "bg-slate-400",
   minor: "bg-slate-400",
+  draft: "bg-slate-400",
 };
 
 export default function Badge({ value, label }: { value: string; label?: string }) {

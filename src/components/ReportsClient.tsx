@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import confetti from "canvas-confetti";
-import { ClipboardList, Sparkles, Check, X, Download, MessageSquare } from "lucide-react";
+import { ClipboardList, Sparkles, Check, X, Download, MessageSquare, Send } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import MarkdownContent from "@/components/MarkdownContent";
 import { downloadReportPdf } from "@/lib/pdf";
 import { INPUT_CLASS, LABEL_CLASS } from "@/lib/ui";
-import type { ReportRow } from "@/lib/reports";
+import type { ReportRowWithCreator } from "@/lib/reports";
 import type { FeedbackRow } from "@/lib/feedback";
 import type { Profile } from "@/lib/types";
 
@@ -23,14 +23,15 @@ export default function ReportsClient({
   projects,
   currentUser,
 }: {
-  initialReports: ReportRow[];
+  initialReports: ReportRowWithCreator[];
   initialFeedback: FeedbackRow[];
   projects: { id: string; name: string }[];
   currentUser: Profile;
 }) {
-  const [reports, setReports] = useState<ReportRow[]>(initialReports);
+  const isManagement = currentUser.role === "management";
+  const [reports, setReports] = useState<ReportRowWithCreator[]>(initialReports);
   const [feedback, setFeedback] = useState<FeedbackRow[]>(initialFeedback);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(isManagement ? "" : projects[0]?.id ?? "");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<number, string>>({});
@@ -48,7 +49,7 @@ export default function ReportsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to generate report");
-      setReports((prev) => [data.report, ...prev]);
+      setReports((prev) => [{ ...data.report, createdByName: currentUser.fullName ?? currentUser.email }, ...prev]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -67,8 +68,33 @@ export default function ReportsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to review report");
-      setReports((prev) => prev.map((r) => (r.id === id ? data.report : r)));
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, ...data.report } : r)));
       if (action === "approve") celebrate();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function sendForReview(id: number) {
+    setBusyId(id);
+    setError(null);
+    try {
+      const content = editing[id];
+      if (content !== undefined) {
+        const patchRes = await fetch(`/api/reports/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        });
+        const patchData = await patchRes.json();
+        if (!patchRes.ok) throw new Error(patchData.error ?? "Failed to save draft");
+      }
+      const res = await fetch(`/api/reports/${id}/send`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to send report for review");
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, ...data.report } : r)));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -105,27 +131,33 @@ export default function ReportsClient({
         AI drafts an executive summary; a human reviews, edits, and approves before it counts as published.
       </p>
 
-      <Card className="mt-4 flex flex-wrap items-end gap-3 p-4">
-        <div>
-          <label className={LABEL_CLASS}>Scope</label>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/60"
-          >
-            <option value="">Org-wide</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Button onClick={generateReport} disabled={generating}>
-          {generating ? "Drafting..." : "Generate report"}
-          {!generating && <Sparkles className="h-3.5 w-3.5" />}
-        </Button>
-      </Card>
+      {!isManagement && projects.length === 0 ? (
+        <Card className="mt-4 p-4 text-sm text-slate-500">
+          You're not assigned to any projects yet — ask Management to assign you one before you can draft a report.
+        </Card>
+      ) : (
+        <Card className="mt-4 flex flex-wrap items-end gap-3 p-4">
+          <div>
+            <label className={LABEL_CLASS}>Scope</label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/60"
+            >
+              {isManagement && <option value="">Org-wide</option>}
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button onClick={generateReport} disabled={generating}>
+            {generating ? "Drafting..." : "Generate report"}
+            {!generating && <Sparkles className="h-3.5 w-3.5" />}
+          </Button>
+        </Card>
+      )}
 
       {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
 
@@ -135,15 +167,22 @@ export default function ReportsClient({
         )}
         {reports.map((report) => {
           const reportFeedback = feedback.filter((f) => f.report_id === report.id);
+          const isOwnDraft = report.status === "draft" && report.created_by === currentUser.id;
+          const managementCanEdit = isManagement && report.status === "pending-review";
+          const editable = isOwnDraft || managementCanEdit;
+
           return (
             <Card key={report.id} className="p-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-slate-900">{report.title}</h3>
                 <Badge value={report.status} />
               </div>
-              <div className="text-xs text-slate-400 mt-1">{new Date(report.created_at).toLocaleString()}</div>
+              <div className="text-xs text-slate-400 mt-1">
+                {new Date(report.created_at).toLocaleString()}
+                {report.createdByName && <> · Drafted by {report.createdByName}</>}
+              </div>
 
-              {report.status === "pending-review" ? (
+              {editable ? (
                 <textarea
                   value={editing[report.id] ?? report.draft_content}
                   onChange={(e) => setEditing((prev) => ({ ...prev, [report.id]: e.target.value }))}
@@ -156,7 +195,19 @@ export default function ReportsClient({
                 </div>
               )}
 
-              {report.status === "pending-review" && (
+              {isOwnDraft && (
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => sendForReview(report.id)} disabled={busyId === report.id}>
+                    <Send className="h-3.5 w-3.5" /> Send for review
+                  </Button>
+                </div>
+              )}
+
+              {report.status === "pending-review" && !isOwnDraft && !isManagement && (
+                <div className="mt-3 text-xs text-slate-400">Sent for review — waiting on Management.</div>
+              )}
+
+              {managementCanEdit && (
                 <div className="mt-3 flex gap-2">
                   <Button variant="success" size="sm" onClick={() => review(report.id, "approve")} disabled={busyId === report.id}>
                     <Check className="h-3.5 w-3.5" /> Approve
@@ -167,7 +218,7 @@ export default function ReportsClient({
                 </div>
               )}
 
-              {report.status !== "pending-review" && (
+              {(report.status === "approved" || report.status === "rejected") && (
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-xs text-slate-400">
                     {report.status === "approved" ? "Approved" : "Rejected"} by {report.reviewed_by} on{" "}
@@ -197,17 +248,19 @@ export default function ReportsClient({
                     <li className="text-sm text-slate-400">No feedback yet — be the first to weigh in.</li>
                   )}
                 </ul>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    value={feedbackDraft[report.id] ?? ""}
-                    onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [report.id]: e.target.value }))}
-                    placeholder={`Comment as ${currentUser.fullName ?? currentUser.email}...`}
-                    className={`flex-1 ${INPUT_CLASS}`}
-                  />
-                  <Button variant="secondary" size="sm" onClick={() => submitFeedback(report.id)}>
-                    Post
-                  </Button>
-                </div>
+                {isManagement && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={feedbackDraft[report.id] ?? ""}
+                      onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [report.id]: e.target.value }))}
+                      placeholder={`Comment as ${currentUser.fullName ?? currentUser.email}...`}
+                      className={`flex-1 ${INPUT_CLASS}`}
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => submitFeedback(report.id)}>
+                      Post
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
           );

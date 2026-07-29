@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CalendarRange } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
+import { getCurrentProfile } from "@/lib/auth";
 import Card from "@/components/Card";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +18,9 @@ function daysBetween(a: Date, b: Date) {
 }
 
 export default async function TimelinePage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
   const dataset = await getDataset();
 
   const allDates = dataset.milestones.map((m) => new Date(m.dueDate));

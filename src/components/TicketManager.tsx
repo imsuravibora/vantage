@@ -6,7 +6,7 @@ import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { INPUT_CLASS } from "@/lib/ui";
-import type { Ticket, TicketStatus } from "@/lib/types";
+import type { Ticket, TicketStatus, UserRole } from "@/lib/types";
 
 const STATUS_OPTIONS: TicketStatus[] = ["todo", "in-progress", "done", "blocked"];
 
@@ -14,16 +14,20 @@ export default function TicketManager({
   projectId,
   initialTickets,
   engineers,
-  canEdit,
+  viewerRole,
+  viewerEngineerId,
 }: {
   projectId: string;
   initialTickets: (Ticket & { assigneeName: string })[];
   engineers: { id: string; name: string }[];
-  canEdit: boolean;
+  viewerRole: UserRole;
+  viewerEngineerId?: string | null;
 }) {
+  const canCreate = viewerRole === "project_manager" || viewerRole === "engineer";
+  const canPickAssignee = viewerRole === "project_manager";
   const [tickets, setTickets] = useState(initialTickets);
   const [title, setTitle] = useState("");
-  const [assigneeId, setAssigneeId] = useState(engineers[0]?.id ?? "");
+  const [assigneeId, setAssigneeId] = useState("");
   const [storyPoints, setStoryPoints] = useState(3);
   const [sprint, setSprint] = useState(1);
   const [creating, setCreating] = useState(false);
@@ -39,11 +43,11 @@ export default function TicketManager({
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, assigneeId, title: title.trim(), storyPoints, sprint }),
+        body: JSON.stringify({ projectId, assigneeId: assigneeId || null, title: title.trim(), storyPoints, sprint }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to create ticket");
-      const assigneeName = engineers.find((e) => e.id === assigneeId)?.name ?? assigneeId;
+      const assigneeName = engineers.find((e) => e.id === assigneeId)?.name ?? "Unassigned";
       setTickets((prev) => [
         {
           id: data.ticket.id,
@@ -60,6 +64,7 @@ export default function TicketManager({
         ...prev,
       ]);
       setTitle("");
+      setAssigneeId("");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -86,6 +91,24 @@ export default function TicketManager({
     }
   }
 
+  async function handleClaim(id: string) {
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tickets/${id}/claim`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to claim ticket");
+      const myName = engineers.find((e) => e.id === viewerEngineerId)?.name ?? "You";
+      setTickets((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, assigneeId: data.ticket.assignee_id, assigneeName: myName } : t))
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <Card className="p-4">
       <h3 className="flex items-center gap-2 font-semibold text-slate-900">
@@ -96,50 +119,68 @@ export default function TicketManager({
       {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
 
       <ul className="mt-3 space-y-2 text-sm max-h-72 overflow-y-auto">
-        {tickets.map((t) => (
-          <li key={t.id} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 last:border-0">
-            <div className="min-w-0">
-              <div className="truncate text-slate-700">{t.title}</div>
-              <div className="text-xs text-slate-400">
-                {t.assigneeName} · {t.storyPoints}pt · Sprint {t.sprint}
+        {tickets.map((t) => {
+          const isMine = viewerRole === "engineer" && t.assigneeId === viewerEngineerId;
+          const isUnclaimed = viewerRole === "engineer" && t.assigneeId === null;
+          const canEditThis = viewerRole === "project_manager" || isMine;
+
+          return (
+            <li key={t.id} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 last:border-0">
+              <div className="min-w-0">
+                <div className="truncate text-slate-700">{t.title}</div>
+                <div className="text-xs text-slate-400">
+                  {t.assigneeId ? t.assigneeName : "Unassigned"} · {t.storyPoints}pt · Sprint {t.sprint}
+                </div>
               </div>
-            </div>
-            {canEdit ? (
-              <select
-                value={t.status}
-                onChange={(e) => handleStatusChange(t.id, e.target.value as TicketStatus)}
-                disabled={busyId === t.id}
-                className="rounded-md border border-slate-300 px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <Badge value={t.status} />
-            )}
-          </li>
-        ))}
+              {canEditThis ? (
+                <select
+                  value={t.status}
+                  onChange={(e) => handleStatusChange(t.id, e.target.value as TicketStatus)}
+                  disabled={busyId === t.id}
+                  className="rounded-md border border-slate-300 px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              ) : isUnclaimed ? (
+                <Button size="sm" variant="secondary" disabled={busyId === t.id} onClick={() => handleClaim(t.id)}>
+                  Claim
+                </Button>
+              ) : (
+                <Badge value={t.status} />
+              )}
+            </li>
+          );
+        })}
         {tickets.length === 0 && <li className="text-slate-400">A blank canvas — no tickets yet</li>}
       </ul>
 
-      {canEdit && (
+      {canCreate && (
         <form onSubmit={handleCreate} className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New ticket title" className={INPUT_CLASS} />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={canPickAssignee ? "New ticket title" : "What do you need help with? (e.g. finance sign-off, UI review)"}
+            className={INPUT_CLASS}
+          />
           <div className="flex gap-2">
-            <select
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
-            >
-              {engineers.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
+            {canPickAssignee && (
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400/60"
+              >
+                <option value="">Unassigned</option>
+                {engineers.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               type="number"
               min={1}
@@ -157,6 +198,9 @@ export default function TicketManager({
               title="Sprint"
             />
           </div>
+          {!canPickAssignee && (
+            <div className="text-xs text-slate-400">Goes into the unassigned pool — anyone on any team can pick it up.</div>
+          )}
           <Button type="submit" disabled={creating} size="sm" className="w-full">
             {creating ? "Adding..." : "Add ticket"}
           </Button>

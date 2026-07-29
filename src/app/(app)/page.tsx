@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Activity, Wallet, ShieldAlert, Flame, BarChart3, PieChart, Milestone, Users, ArrowRight } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeOrgSummary, computeMilestoneRollup, budgetVariancePct } from "@/lib/analytics";
@@ -18,11 +19,13 @@ function formatCurrency(n: number) {
 }
 
 export default async function DashboardPage() {
-  const [dataset, signals, documentReviews, profile] = await Promise.all([
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+
+  const [dataset, signals, documentReviews] = await Promise.all([
     getDataset(),
     listRecentSignals(),
     listRecentDocumentReviews(),
-    getCurrentProfile(),
   ]);
   const summary = computeOrgSummary(dataset);
   const milestoneRollup = computeMilestoneRollup(dataset.milestones);

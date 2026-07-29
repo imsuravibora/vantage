@@ -5,7 +5,7 @@ import type { TicketStatus } from "./types";
 
 export interface NewTicketInput {
   projectId: string;
-  assigneeId: string;
+  assigneeId: string | null;
   title: string;
   storyPoints: number;
   sprint: number;
@@ -34,6 +34,36 @@ export async function createTicket(input: NewTicketInput) {
 
   if (error) throw new Error(`Failed to create ticket: ${error.message}`);
   return data;
+}
+
+// An engineer picking up an open ticket from the unassigned pool -- only
+// succeeds while nobody has claimed it yet, never takes it from a teammate.
+export async function claimTicket(id: string, engineerId: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({ assignee_id: engineerId, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("assignee_id", null)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error("That ticket has already been claimed by someone else.");
+  return data;
+}
+
+export async function getEngineerIdForProfile(profileId: string): Promise<string | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("engineers").select("id").eq("profile_id", profileId).maybeSingle();
+  if (error) throw new Error(`Failed to look up engineer: ${error.message}`);
+  return data?.id ?? null;
+}
+
+export async function getTicketAssignee(id: string): Promise<string | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("tickets").select("assignee_id").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Failed to look up ticket: ${error.message}`);
+  return data?.assignee_id ?? null;
 }
 
 export async function updateTicketStatus(id: string, status: TicketStatus) {

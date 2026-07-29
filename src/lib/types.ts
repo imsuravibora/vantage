@@ -3,8 +3,8 @@ export type TicketStatus = "todo" | "in-progress" | "done" | "blocked";
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 export type IncidentSeverity = "sev1" | "sev2" | "sev3";
 export type DocType = "retro" | "postmortem" | "status-update" | "uploaded-doc";
-export type ReportStatus = "pending-review" | "approved" | "rejected";
-export type UserRole = "project_manager" | "management";
+export type ReportStatus = "draft" | "pending-review" | "approved" | "rejected";
+export type UserRole = "project_manager" | "management" | "engineer";
 export type SignalSource = "ticket" | "document" | "project";
 export type SignalSeverity = "minor" | "moderate" | "major";
 
@@ -27,6 +27,7 @@ export interface Engineer {
   teamId: string;
   role: string;
   weeklyCapacityHours: number;
+  profileId: string | null;
 }
 
 export interface Project {
@@ -43,7 +44,7 @@ export interface Project {
 export interface Ticket {
   id: string;
   projectId: string;
-  assigneeId: string;
+  assigneeId: string | null;
   title: string;
   status: TicketStatus;
   storyPoints: number;

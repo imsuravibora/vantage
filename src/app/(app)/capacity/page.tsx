@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { Gauge } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
 import { computeEngineerCapacity } from "@/lib/analytics";
+import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import CapacityChart from "@/components/charts/CapacityChart";
@@ -8,6 +10,10 @@ import CapacityChart from "@/components/charts/CapacityChart";
 export const dynamic = "force-dynamic";
 
 export default async function CapacityPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.role === "engineer") redirect("/my-work");
+
   const dataset = await getDataset();
 
   const rows = dataset.engineers.map((e) => ({

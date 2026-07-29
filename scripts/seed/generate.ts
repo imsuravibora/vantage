@@ -104,6 +104,7 @@ export function generateDataset(): Dataset {
         teamId: team.id,
         role: rng.pick(ROLES),
         weeklyCapacityHours: rng.pick([32, 36, 40, 40, 40]),
+        profileId: null,
       });
       engIdx++;
     }

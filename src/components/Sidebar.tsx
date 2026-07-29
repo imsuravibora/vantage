@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Sparkles, Gauge, CalendarRange, FileText, ClipboardList, LogOut } from "lucide-react";
+import { LayoutDashboard, Sparkles, Gauge, CalendarRange, FileText, ClipboardList, UserCog, ListChecks, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import VantageMark from "@/components/VantageMark";
 import type { Profile } from "@/lib/types";
@@ -10,13 +10,13 @@ import type { Profile } from "@/lib/types";
 const BASE_NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/ask", label: "Ask AI", icon: Sparkles },
-  { href: "/capacity", label: "Capacity", icon: Gauge },
   { href: "/timeline", label: "Timeline", icon: CalendarRange },
 ];
 
 const ROLE_LABEL: Record<Profile["role"], string> = {
   project_manager: "Project Manager",
   management: "Management",
+  engineer: "Engineer",
 };
 
 export default function Sidebar({ profile }: { profile: Profile }) {
@@ -24,10 +24,16 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   const router = useRouter();
 
   const navItems = [...BASE_NAV_ITEMS];
-  if (profile.role === "management") {
-    navItems.push({ href: "/reports", label: "Reports", icon: ClipboardList });
+  if (profile.role === "engineer") {
+    navItems.push({ href: "/my-work", label: "My Work", icon: ListChecks });
   } else {
-    navItems.push({ href: "/documents", label: "Documents", icon: FileText });
+    navItems.splice(2, 0, { href: "/capacity", label: "Capacity", icon: Gauge });
+    navItems.push({ href: "/reports", label: "Reports", icon: ClipboardList });
+    if (profile.role === "management") {
+      navItems.push({ href: "/assignments", label: "Assignments", icon: UserCog });
+    } else {
+      navItems.push({ href: "/documents", label: "Documents", icon: FileText });
+    }
   }
 
   async function handleSignOut() {

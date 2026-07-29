@@ -9,9 +9,30 @@ export interface Database {
         Relationships: [];
       };
       engineers: {
-        Row: { id: string; name: string; team_id: string; role: string; weekly_capacity_hours: number };
-        Insert: { id: string; name: string; team_id: string; role: string; weekly_capacity_hours: number };
-        Update: Partial<{ id: string; name: string; team_id: string; role: string; weekly_capacity_hours: number }>;
+        Row: {
+          id: string;
+          name: string;
+          team_id: string;
+          role: string;
+          weekly_capacity_hours: number;
+          profile_id: string | null;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          team_id: string;
+          role: string;
+          weekly_capacity_hours: number;
+          profile_id?: string | null;
+        };
+        Update: Partial<{
+          id: string;
+          name: string;
+          team_id: string;
+          role: string;
+          weekly_capacity_hours: number;
+          profile_id: string | null;
+        }>;
         Relationships: [];
       };
       projects: {
@@ -42,7 +63,7 @@ export interface Database {
         Row: {
           id: string;
           project_id: string;
-          assignee_id: string;
+          assignee_id: string | null;
           title: string;
           status: "todo" | "in-progress" | "done" | "blocked";
           story_points: number;
@@ -53,7 +74,7 @@ export interface Database {
         Insert: {
           id: string;
           project_id: string;
-          assignee_id: string;
+          assignee_id?: string | null;
           title: string;
           status: "todo" | "in-progress" | "done" | "blocked";
           story_points: number;
@@ -182,8 +203,9 @@ export interface Database {
           title: string;
           draft_content: string;
           final_content: string | null;
-          status: "pending-review" | "approved" | "rejected";
+          status: "draft" | "pending-review" | "approved" | "rejected";
           created_at: string;
+          created_by: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
         };
@@ -192,14 +214,16 @@ export interface Database {
           title: string;
           draft_content: string;
           final_content?: string | null;
-          status?: "pending-review" | "approved" | "rejected";
+          status?: "draft" | "pending-review" | "approved" | "rejected";
+          created_by?: string | null;
         };
         Update: Partial<{
           project_id: string | null;
           title: string;
           draft_content: string;
           final_content: string | null;
-          status: "pending-review" | "approved" | "rejected";
+          status: "draft" | "pending-review" | "approved" | "rejected";
+          created_by: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
         }>;
@@ -210,16 +234,20 @@ export interface Database {
           id: string;
           email: string;
           full_name: string | null;
-          role: "project_manager" | "management";
+          role: "project_manager" | "management" | "engineer";
           created_at: string;
         };
         Insert: {
           id: string;
           email: string;
           full_name?: string | null;
-          role: "project_manager" | "management";
+          role: "project_manager" | "management" | "engineer";
         };
-        Update: Partial<{ email: string; full_name: string | null; role: "project_manager" | "management" }>;
+        Update: Partial<{
+          email: string;
+          full_name: string | null;
+          role: "project_manager" | "management" | "engineer";
+        }>;
         Relationships: [];
       };
       report_feedback: {
@@ -238,6 +266,20 @@ export interface Database {
           comment: string;
         };
         Update: Partial<{ comment: string }>;
+        Relationships: [];
+      };
+      project_assignments: {
+        Row: {
+          id: number;
+          profile_id: string;
+          project_id: string;
+          assigned_at: string;
+        };
+        Insert: {
+          profile_id: string;
+          project_id: string;
+        };
+        Update: Partial<{ profile_id: string; project_id: string }>;
         Relationships: [];
       };
       signals: {
