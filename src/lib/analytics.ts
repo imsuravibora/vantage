@@ -6,6 +6,7 @@ import type {
   Incident,
   Engineer,
   Allocation,
+  Ticket,
 } from "./types";
 
 export type RiskLevel = "low" | "medium" | "high";
@@ -23,11 +24,62 @@ function levelFromScore(score: number): RiskLevel {
   return "low";
 }
 
+export type ForecastStatus = "on-pace" | "at-risk" | "slipping" | "no-data";
+
+export interface VelocityForecast {
+  completedPoints: number;
+  remainingPoints: number;
+  velocityPerDay: number;
+  daysElapsed: number;
+  daysRemaining: number;
+  projectedDaysNeeded: number | null;
+  status: ForecastStatus;
+}
+
+// A simple, explainable linear projection: how many points has this project
+// actually finished per day so far, and at that rate, will the remaining
+// points be done before the target date? This is deliberately a plain
+// burndown-style forecast, not a black box -- every number it produces can
+// be traced back to real ticket data.
+export function computeVelocityForecast(project: Project, tickets: Ticket[]): VelocityForecast {
+  const completedPoints = tickets.filter((t) => t.status === "done").reduce((sum, t) => sum + t.storyPoints, 0);
+  const remainingPoints = tickets.filter((t) => t.status !== "done").reduce((sum, t) => sum + t.storyPoints, 0);
+
+  const now = new Date();
+  const start = new Date(project.startDate);
+  const target = new Date(project.targetDate);
+
+  const daysElapsed = Math.max(1, Math.round((now.getTime() - start.getTime()) / 86_400_000));
+  const daysRemaining = Math.round((target.getTime() - now.getTime()) / 86_400_000);
+
+  const velocityPerDay = Math.round((completedPoints / daysElapsed) * 100) / 100;
+
+  let projectedDaysNeeded: number | null = null;
+  let status: ForecastStatus;
+
+  if (tickets.length === 0) {
+    status = "no-data";
+  } else if (remainingPoints === 0) {
+    status = "on-pace";
+    projectedDaysNeeded = 0;
+  } else if (velocityPerDay <= 0) {
+    status = "slipping";
+  } else {
+    projectedDaysNeeded = Math.ceil(remainingPoints / velocityPerDay);
+    if (projectedDaysNeeded <= daysRemaining) status = "on-pace";
+    else if (projectedDaysNeeded <= daysRemaining * 1.25 + 3) status = "at-risk";
+    else status = "slipping";
+  }
+
+  return { completedPoints, remainingPoints, velocityPerDay, daysElapsed, daysRemaining, projectedDaysNeeded, status };
+}
+
 export function computeProjectRisk(
   project: Project,
   milestones: Milestone[],
   securityFindings: SecurityFinding[],
-  incidents: Incident[]
+  incidents: Incident[],
+  tickets: Ticket[] = []
 ): ProjectRisk {
   let score = 0;
   const factors: string[] = [];
@@ -71,6 +123,23 @@ export function computeProjectRisk(
   } else if (sev2Count > 0) {
     score += Math.min(8, sev2Count * 4);
     factors.push(`${sev2Count} sev2 incident(s) this quarter`);
+  }
+
+  if (tickets.length > 0) {
+    const forecast = computeVelocityForecast(project, tickets);
+    if (forecast.status === "slipping") {
+      score += 15;
+      factors.push(
+        forecast.projectedDaysNeeded !== null
+          ? `At current velocity, remaining work needs ~${forecast.projectedDaysNeeded} more day(s) but only ${Math.max(forecast.daysRemaining, 0)} remain`
+          : `No tickets have been completed yet, so remaining work isn't on pace for the target date`
+      );
+    } else if (forecast.status === "at-risk") {
+      score += 8;
+      factors.push(
+        `Velocity forecast is tight — projected ${forecast.projectedDaysNeeded} day(s) needed vs ${Math.max(forecast.daysRemaining, 0)} remaining`
+      );
+    }
   }
 
   score = Math.min(100, Math.round(score));
@@ -173,7 +242,8 @@ export function computeOrgSummary(dataset: Dataset): OrgSummary {
         p,
         dataset.milestones.filter((m) => m.projectId === p.id),
         dataset.securityFindings.filter((f) => f.projectId === p.id),
-        dataset.incidents.filter((i) => i.projectId === p.id)
+        dataset.incidents.filter((i) => i.projectId === p.id),
+        dataset.tickets.filter((t) => t.projectId === p.id)
       )
     )
     .sort((a, b) => b.score - a.score);

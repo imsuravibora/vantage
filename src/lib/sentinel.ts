@@ -9,6 +9,7 @@ export interface SignalWithProject {
   source: SignalSource;
   severity: SignalSeverity;
   summary: string;
+  reason: string | null;
   escalatedReportId: number | null;
   createdAt: string;
 }
@@ -30,6 +31,7 @@ export async function listRecentSignals(limit = 20): Promise<SignalWithProject[]
     source: row.source,
     severity: row.severity,
     summary: row.summary,
+    reason: row.reason,
     escalatedReportId: row.escalated_report_id,
     createdAt: row.created_at,
   }));
@@ -40,7 +42,8 @@ export async function recordSignal(
   source: SignalSource,
   sourceId: string,
   severity: SignalSeverity,
-  summary: string
+  summary: string,
+  reason?: string
 ) {
   const supabase = getSupabase();
 
@@ -67,6 +70,7 @@ export async function recordSignal(
     source_id: sourceId,
     severity,
     summary,
+    reason: reason ?? null,
     escalated_report_id: escalatedReportId,
   });
   if (error) console.error("[sentinel] failed to record signal:", error.message);
@@ -74,7 +78,14 @@ export async function recordSignal(
 
 // Rule-based -- a ticket going blocked is unambiguous, no AI judgment needed.
 export async function flagBlockedTicket(ticketId: string, projectId: string, title: string) {
-  await recordSignal(projectId, "ticket", ticketId, "minor", `Ticket blocked: "${title}"`);
+  await recordSignal(
+    projectId,
+    "ticket",
+    ticketId,
+    "minor",
+    `Ticket blocked: "${title}"`,
+    "Blocked tickets always get flagged — this is a fixed rule, not an AI judgment call."
+  );
 }
 
 export interface DocumentReviewResult {
@@ -87,12 +98,13 @@ export interface DocumentReviewResult {
   mustRead: string[];
   departments: string[];
   severity: SignalSeverity;
+  severityReason: string;
 }
 
 const REVIEW_SYSTEM_PROMPT = `You are reviewing a project document for a management reporting tool. Read the text and pull out concrete points under each category below. Only include a point if it is actually stated or clearly implied in the text -- never invent one. Leave a category as an empty array if nothing relevant is present.
 
 Return ONLY JSON in this exact shape:
-{"compliance": string[], "security": string[], "timelines": string[], "risks": string[], "terms": string[], "agreements": string[], "mustRead": string[], "departments": string[], "severity": "minor"|"moderate"|"major"}
+{"compliance": string[], "security": string[], "timelines": string[], "risks": string[], "terms": string[], "agreements": string[], "mustRead": string[], "departments": string[], "severity": "minor"|"moderate"|"major", "severityReason": string}
 
 Category guide:
 - compliance: regulatory, legal, or policy obligations mentioned
@@ -104,8 +116,9 @@ Category guide:
 - mustRead: the handful of points a Project Manager absolutely needs to read, drawn from the categories above (plain sentences, not category names) -- empty array if nothing rises to that bar
 - departments: which internal departments should review this (e.g. "Legal", "Security", "Finance", "Engineering") -- only ones actually relevant, never a generic full list
 - severity: "major" if leadership needs to know now, "moderate" if it needs attention this week, "minor" if just worth noting
+- severityReason: one plain sentence explaining WHY you picked that severity, naming the specific fact(s) that drove the decision -- e.g. "Rated major because the vendor's termination notice threatens production with no migration plan in place." Never a generic sentence like "this seems important."
 
-If the document has nothing relevant to any category, return every array empty and severity "minor".`;
+If the document has nothing relevant to any category, return every array empty, severity "minor", and severityReason explaining nothing concerning was found.`;
 
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
@@ -131,6 +144,7 @@ export async function reviewDocumentText(text: string): Promise<DocumentReviewRe
     mustRead: toStringArray(raw.mustRead),
     departments: toStringArray(raw.departments),
     severity,
+    severityReason: typeof raw.severityReason === "string" ? raw.severityReason : "",
   };
 }
 
@@ -173,7 +187,7 @@ export async function reviewDocument(projectId: string, docId: string, text: str
       const summary =
         review.mustRead[0] ??
         `Document reviewed — ${totalPoints} point(s) found across ${nonEmptyCategoryCount} area(s)`;
-      await recordSignal(projectId, "document", docId, review.severity, summary);
+      await recordSignal(projectId, "document", docId, review.severity, summary, review.severityReason || undefined);
     }
   } catch (err) {
     console.error("[sentinel] document review failed:", err);

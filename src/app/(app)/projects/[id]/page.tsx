@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, TriangleAlert, Wallet, Milestone, ShieldAlert, Flame, ScrollText, Lock } from "lucide-react";
+import { ArrowLeft, TriangleAlert, Wallet, Milestone, ShieldAlert, Flame, ScrollText, Lock, TrendingUp } from "lucide-react";
 import { getDataset } from "@/lib/data-access";
-import { computeProjectRisk, budgetVariancePct } from "@/lib/analytics";
+import { computeProjectRisk, computeVelocityForecast, budgetVariancePct } from "@/lib/analytics";
 import { getCurrentProfile } from "@/lib/auth";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
@@ -27,7 +27,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const findings = dataset.securityFindings.filter((f) => f.projectId === id);
   const incidents = dataset.incidents.filter((i) => i.projectId === id);
   const docs = dataset.narrativeDocs.filter((d) => d.projectId === id);
-  const risk = computeProjectRisk(project, milestones, findings, incidents);
+  const risk = computeProjectRisk(project, milestones, findings, incidents, tickets);
+  const forecast = computeVelocityForecast(project, tickets);
   const variance = budgetVariancePct(project);
 
   const ticketsWithAssignee = tickets.map((t) => ({
@@ -87,6 +88,40 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           viewerEngineerId={viewerEngineerId}
         />
       </div>
+
+      <Card className="mt-6 p-4">
+        <SectionHeading icon={TrendingUp}>Delivery forecast</SectionHeading>
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <Badge
+            value={
+              forecast.status === "on-pace" ? "on-track" : forecast.status === "at-risk" ? "at-risk" : forecast.status === "slipping" ? "off-track" : "todo"
+            }
+            label={forecast.status === "no-data" ? "no ticket data" : forecast.status}
+          />
+          {forecast.status !== "no-data" && (
+            <span className="text-sm text-slate-600">
+              {forecast.completedPoints}pt done, {forecast.remainingPoints}pt remaining · velocity {forecast.velocityPerDay}pt/day
+            </span>
+          )}
+        </div>
+        {forecast.status === "no-data" ? (
+          <p className="mt-2 text-sm text-slate-400">No tickets yet — nothing to forecast from.</p>
+        ) : forecast.remainingPoints === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">All tracked work is done.</p>
+        ) : forecast.projectedDaysNeeded !== null ? (
+          <p className="mt-2 text-sm text-slate-600">
+            At the current pace, the remaining work needs about <strong>{forecast.projectedDaysNeeded} more day(s)</strong> —{" "}
+            {Math.max(forecast.daysRemaining, 0)} day(s) remain until the target date ({project.targetDate}).
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-slate-600">
+            No tickets have been completed yet, so remaining work isn't on pace for the target date ({project.targetDate}).
+          </p>
+        )}
+        <p className="mt-2 text-xs text-slate-400">
+          A plain projection from real ticket data: points finished so far ÷ days elapsed, compared against points left and days until the target date.
+        </p>
+      </Card>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-4">

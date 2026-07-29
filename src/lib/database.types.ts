@@ -290,6 +290,7 @@ export interface Database {
           source_id: string;
           severity: "minor" | "moderate" | "major";
           summary: string;
+          reason: string | null;
           escalated_report_id: number | null;
           created_at: string;
         };
@@ -299,11 +300,13 @@ export interface Database {
           source_id: string;
           severity: "minor" | "moderate" | "major";
           summary: string;
+          reason?: string | null;
           escalated_report_id?: number | null;
         };
         Update: Partial<{
           severity: "minor" | "moderate" | "major";
           summary: string;
+          reason: string | null;
           escalated_report_id: number | null;
         }>;
         Relationships: [];

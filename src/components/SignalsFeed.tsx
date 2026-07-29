@@ -59,6 +59,7 @@ export default function SignalsFeed({ signals }: { signals: SignalWithProject[] 
                     </Link>
                   </div>
                   <div className="text-sm text-slate-700 mt-1">{s.summary}</div>
+                  {s.reason && <div className="text-xs text-slate-400 mt-0.5">Why: {s.reason}</div>}
                   {s.escalatedReportId && (
                     <div className="flex items-center gap-1 text-xs text-amber-600 mt-1">
                       <ArrowUpRight className="h-3 w-3" /> Escalated to Reports for review
